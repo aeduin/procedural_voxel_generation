@@ -1,7 +1,147 @@
+const vector = (x, y, z) => new THREE.Vector3(x, y, z);
+
+class Chunk {
+    static size = vector(256, 128, 256);
+    static blocks_count = Chunk.size.x * Chunk.size.y * Chunk.size.z;
+
+    static position_to_index(position) {
+        return (position.x * this.size.y + position.y) * this.size.z + position.z;
+    }
+
+    constructor() {
+        this.data = new Array(Chunk.blocks_count);
+
+        for(let tile = 0; tile < Chunk.blocks_count; tile++) {
+            this.data[tile] = new Air();
+        }
+    }
+
+    get_at(position) {
+        if(position.x < 0 || position.x >= Chunk.size.x || position.y < 0 || position.y >= Chunk.size.y || position.z < 0 || position.z >= Chunk.size.z) {
+            return null;
+        }
+
+        return this.data[Chunk.position_to_index(position)];
+    }
+
+    set_at(position, new_block) {
+        this.data[Chunk.position_to_index(position)] = new_block;
+    }
+
+    *iter_indices() {
+        for(let x = 0; x < Chunk.size.x; x++) {
+            for(let y = 0; y < Chunk.size.y; y++) {
+                for(let z = 0; z < Chunk.size.z; z++) {
+                    const result = vector(x, y, z);
+
+                    if(result.equals(Chunk.size.clone().subScalar(1))) {
+                        return result;
+                    }
+                    else {
+
+                        yield result;
+                    }
+                }
+            }
+        }
+    }
+
+    to_mesh() {
+        let all_vertices = [];
+
+        let all_colors = [];
+
+        let faces_count = 0;
+
+        for(const position of this.iter_indices()) {
+            // const {x, y, z} = position;
+
+            // if(x % 30 == 0 && y % 30 == 0 && z % 30 == 0) {
+            //     console.log(x, y, z, position);
+            // }
+
+            const block = this.get_at(position);
+
+            if(block.invisible()) {
+                continue;
+            }
+
+            for(const face of faces) {
+                // console.log(face);
+                const neighour_position = position.clone().add(face_to_direction(face));
+
+                const neighbour = this.get_at(neighour_position);
+
+                if(neighbour == null || neighbour.transparent()) {
+                    const vertex_info = block.face(position, face);
+                    
+                    if(vertex_info !== null) {
+                        const { vertices, color } = vertex_info;
+                        all_vertices.push(...vertices)
+
+                        for(let i = 0; i < 4; i++) {
+                            all_colors.push(color);
+                        }
+
+                        faces_count += 1;
+                    }
+                }
+            }
+        }
+
+        let geometry = new THREE.BufferGeometry();
+        let material = new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            emissive: new THREE.Color(0x0c0c0c),
+            shininess: 50,
+            // side: THREE.DoubleSide,
+        });
+
+        material.vertexColors = true;
+        
+        // let material = new THREE.MeshBasicMaterial( { vertexColors: true } );
+
+        const pos = new THREE.Float32BufferAttribute(
+            all_vertices.flatMap(({x, y, z}) => [x, y, z]),
+            3
+        );
+
+        const col = new THREE.Float32BufferAttribute(
+            all_colors.flatMap(({r, g, b}) => [r, g, b]),
+            3
+        );
+
+        geometry.setAttribute('position', pos);
+        geometry.setAttribute('color', col);
+        
+        const indices = new Uint32Array(faces_count * 6);
+
+        for(let face_index = 0; face_index < faces_count; face_index++) {
+            indices[face_index * 6 + 0] = face_index * 4 + 0;
+            indices[face_index * 6 + 1] = face_index * 4 + 1;
+            indices[face_index * 6 + 2] = face_index * 4 + 2;
+            indices[face_index * 6 + 3] = face_index * 4 + 2;
+            indices[face_index * 6 + 4] = face_index * 4 + 3;
+            indices[face_index * 6 + 5] = face_index * 4 + 0;
+        }
+
+        geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+
+        geometry.computeBoundingSphere();
+        geometry.computeBoundingBox();
+        geometry.computeVertexNormals();
+
+        const result = new THREE.Mesh(geometry, material)
+
+        // result.castShadow = true;
+        // result.receiveShadow = true;
+
+        return result;
+    }
+}
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-const vector = (x, y, z) => new THREE.Vector3(x, y, z);
 
 const  renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -23,15 +163,17 @@ renderer.domElement.addEventListener('click', function(e) {
     this.requestPointerLock();
 });
 
-addEventListener('pointerlockchange', e => {
+document.addEventListener('pointerlockchange', e => {
     pointer_locked = document.pointerLockElement != undefined;
     console.log(pointer_locked);
 });
 
 addEventListener('mousemove', e => {
+    // console.log(e, pointer_locked, e.movementX, e.movementY);
+
     if(pointer_locked) {
         // console.log(e.movementX, e.movementY);
-        view.horizontal_rotation -= (e.movementX + 4) / 1000;
+        view.horizontal_rotation -= (e.movementX) / 1000;
         view.vertical_rotation -= e.movementY / 1000;
     }
 });
@@ -66,11 +208,11 @@ const mesh = new THREE.Mesh( geometry, material );
 mesh.position.z = 1
 // scene.add(mesh);
 
-const light = new THREE.PointLight(0xffffaa, 1, 100);
-light.position.set(20, 30, 20);
-scene.add(light);
+const sun = new THREE.PointLight(0xffffaa, 1.5, 1000);
+sun.position.set(Chunk.size.x / 2, 100, Chunk.size.z / 2);
+scene.add(sun);
 
-const ambient_light = new THREE.AmbientLight(0x555555);
+const ambient_light = new THREE.AmbientLight(0x333333);
 scene.add(ambient_light);
 
 const zip = (array1, array2) => array1.map((element, i) => [element, array2[i]]);
@@ -215,7 +357,7 @@ class Stone extends Block {
     }
 
     color() {
-        return new THREE.Color(0x999999);
+        return new THREE.Color(0x444444);
     }
 }
 
@@ -270,143 +412,13 @@ class Wood extends Block {
     }
 }
 
-class Chunk {
-    static size = vector(64, 64, 64);
-    static blocks_count = Chunk.size.x * Chunk.size.y * Chunk.size.z;
-
-    static position_to_index(position) {
-        return (position.x * this.size.y + position.y) * this.size.z + position.z;
-    }
-
+class Snow extends Block {
     constructor() {
-        this.data = new Array(Chunk.blocks_count);
-
-        for(let tile = 0; tile < Chunk.blocks_count; tile++) {
-            this.data[tile] = new Air();
-        }
+        super(7);
     }
 
-    get_at(position) {
-        if(position.x < 0 || position.x >= Chunk.size.x || position.y < 0 || position.y >= Chunk.size.y || position.z < 0 || position.z >= Chunk.size.z) {
-            return null;
-        }
-
-        return this.data[Chunk.position_to_index(position)];
-    }
-
-    set_at(position, new_block) {
-        this.data[Chunk.position_to_index(position)] = new_block;
-    }
-
-    *iter_indices() {
-        for(let x = 0; x < Chunk.size.x; x++) {
-            for(let y = 0; y < Chunk.size.y; y++) {
-                for(let z = 0; z < Chunk.size.z; z++) {
-                    const result = vector(x, y, z);
-
-                    if(result.equals(Chunk.size.clone().subScalar(1))) {
-                        return result;
-                    }
-                    else {
-
-                        yield result;
-                    }
-                }
-            }
-        }
-    }
-
-    to_mesh() {
-        let all_vertices = [];
-
-        let all_colors = [];
-
-        let faces_count = 0;
-
-        for(const position of this.iter_indices()) {
-            // const {x, y, z} = position;
-
-            // if(x % 30 == 0 && y % 30 == 0 && z % 30 == 0) {
-            //     console.log(x, y, z, position);
-            // }
-
-            const block = this.get_at(position);
-
-            if(block.invisible()) {
-                continue;
-            }
-
-            for(const face of faces) {
-                // console.log(face);
-                const neighour_position = position.clone().add(face_to_direction(face));
-
-                const neighbour = this.get_at(neighour_position);
-
-                if(neighbour == null || neighbour.transparent()) {
-                    const vertex_info = block.face(position, face);
-                    
-                    if(vertex_info !== null) {
-                        const { vertices, color } = vertex_info;
-                        all_vertices.push(...vertices)
-
-                        for(let i = 0; i < 4; i++) {
-                            all_colors.push(color);
-                        }
-
-                        faces_count += 1;
-                    }
-                }
-            }
-        }
-
-        let geometry = new THREE.BufferGeometry();
-        let material = new THREE.MeshPhongMaterial({
-            vertexColors: true,
-            emissive: new THREE.Color(0x0c0c0c),
-            shininess: 50,
-            // side: THREE.DoubleSide,
-        });
-
-        material.vertexColors = true;
-        
-        // let material = new THREE.MeshBasicMaterial( { vertexColors: true } );
-
-        const pos = new THREE.Float32BufferAttribute(
-            all_vertices.flatMap(({x, y, z}) => [x, y, z]),
-            3
-        );
-
-        const col = new THREE.Float32BufferAttribute(
-            all_colors.flatMap(({r, g, b}) => [r, g, b]),
-            3
-        );
-
-        geometry.setAttribute('position', pos);
-        geometry.setAttribute('color', col);
-        
-        const indices = new Uint32Array(faces_count * 6);
-
-        for(let face_index = 0; face_index < faces_count; face_index++) {
-            indices[face_index * 6 + 0] = face_index * 4 + 0;
-            indices[face_index * 6 + 1] = face_index * 4 + 1;
-            indices[face_index * 6 + 2] = face_index * 4 + 2;
-            indices[face_index * 6 + 3] = face_index * 4 + 2;
-            indices[face_index * 6 + 4] = face_index * 4 + 3;
-            indices[face_index * 6 + 5] = face_index * 4 + 0;
-        }
-
-        geometry.setIndex(new THREE.BufferAttribute(indices, 1));
-
-        geometry.computeBoundingSphere();
-        geometry.computeBoundingBox();
-        geometry.computeVertexNormals();
-
-        const result = new THREE.Mesh(geometry, material)
-
-        // result.castShadow = true;
-        // result.receiveShadow = true;
-
-        return result;
+    color() {
+        return new THREE.Color(0xdddddd);
     }
 }
 
@@ -423,7 +435,7 @@ let controls = {
 let chunk = new Chunk();
 
 gen_ground(chunk);
-gen_tree(chunk, vector(Chunk.size.x / 2, 10, Chunk.size.z / 2));
+// gen_tree(chunk, vector(Chunk.size.x / 2, 10, Chunk.size.z / 2));
 
 const chunk_mesh = chunk.to_mesh();
 // chunk_mesh.position.x = Chunk.size.x / -2;
