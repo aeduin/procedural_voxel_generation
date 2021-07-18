@@ -1,21 +1,29 @@
 function gen_ground(chunk) {
-    const roughness_noise = new PerlinNoise(2, 2);
+    const roughness_noise = new MaasNoise(Chunk.size.x / 128, Chunk.size.z / 128);
 
-    const noise = new PerlinNoise(Chunk.size.x / 8, Chunk.size.z / 8);
+    const noise = new MaasNoise(Chunk.size.x / 8, Chunk.size.z / 8);
 
     console.log(noise);
 
     for(let x = 0; x < Chunk.size.x; x++) {
         for(let z = 0; z < Chunk.size.z; z++) {
-            const roughness = (Math.abs(roughness_noise.value_at(x * 2 / Chunk.size.x, z * 2 / Chunk.size.z)) ** 2 * 2) + 0.5;
-            const height = Math.sqrt(Math.abs(noise.value_at(x / 8, z / 8)) * 10) * roughness;
+            const roughness_sample = Math.abs(roughness_noise.value_at(x / 128, z / 128));
+            const height_sample = Math.abs(noise.value_at(x / 8, z / 8));
+
+            const roughness = (roughness_sample ** 2 * 10) + 0.5;
+            // const roughness = 5;
+            const height =
+                Math.sqrt(height_sample * 30 + 5) * roughness
+                + roughness * 4;
             // const height = noise.value_at(x / 8, z / 8) * 4;
 
-            for(let y = 0; y < height - 3; y++) {
+            const dirt_layer = 1 + random(2);
+
+            for(let y = 0; y < height - dirt_layer; y++) {
                 chunk.set_at(vector(x, y, z), new Stone());
             }
 
-            for(let y = Math.max(0, Math.floor(height - 3)); y < height; y++) {
+            for(let y = Math.max(0, Math.floor(height - dirt_layer)); y < height; y++) {
                 chunk.set_at(vector(x, y, z), new Dirt());
             }
             
@@ -34,28 +42,28 @@ function gen_ground(chunk) {
     }
 }
 
-class PerlinNoise {
-    static values_per_cell = 3;
+class MaasNoise {
+    static values_per_cell = 1;
 
     constructor(grid_width, grid_height) {
         this.width = grid_width + 1;
         this.height = grid_height + 1;
 
-        this.grid = new Array(this.width * this.height * PerlinNoise.values_per_cell);
+        this.grid = new Array(this.width * this.height * MaasNoise.values_per_cell);
 
         for(let x = 0; x < this.width; x++) {
             for(let y = 0; y < this.height; y++) {
                 const idx = this.to_index(x, y);
 
-                this.grid[idx] = Math.random() * PerlinNoise.values_per_cell - 1;
-                this.grid[idx + 1] = Math.random() * PerlinNoise.values_per_cell - 1;
-                this.grid[idx + 2] = Math.random() * PerlinNoise.values_per_cell - 1;
+                this.grid[idx] = Math.random() * 2 - 1;
+                // this.grid[idx + 1] = Math.random() * 2 - 1;
+                // this.grid[idx + 2] = Math.random() * 2 - 1;
             }
         }
     }
 
     to_index(x, y) {
-        return (x * this.height + y) * PerlinNoise.values_per_cell;
+        return (x * this.height + y) * MaasNoise.values_per_cell;
     }
 
     value_at(x, y) {
@@ -86,12 +94,12 @@ class PerlinNoise {
 
             result +=
                 (
-                    this.grid[idx] * distance_to_corner_x +
-                    this.grid[idx + 1] * distance_to_corner_y +
-                    this.grid[idx + 2]
+                    // this.grid[idx] * distance_to_corner_x *.5
+                    // + this.grid[idx + 1] * distance_to_corner_y *.5
+                    + this.grid[idx]
                 ) * Math.min(1 - distance_to_corner_x, 1 - distance_to_corner_y);
         }
 
-        return result * 1;
+        return result;
     }
 }

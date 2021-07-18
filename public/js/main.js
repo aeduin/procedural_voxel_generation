@@ -1,7 +1,7 @@
 const vector = (x, y, z) => new THREE.Vector3(x, y, z);
 
 class Chunk {
-    static size = vector(256, 128, 256);
+    static size = vector(256, 192, 256);
     static blocks_count = Chunk.size.x * Chunk.size.y * Chunk.size.z;
 
     static position_to_index(position) {
@@ -246,6 +246,8 @@ const facing = {
 
 const faces = [0, 1, 2, 3, 4, 5]
 
+const face_directions= faces.map(face_to_direction);
+
 function random(max) {
     return Math.floor(Math.random() * max);
 }
@@ -377,7 +379,7 @@ class Grass extends Block {
     }
 
     color() {
-        return new THREE.Color(0x116f00);
+        return new THREE.Color(0x117f00);
     }
 }
 
@@ -398,7 +400,7 @@ class Leaf extends Block {
     }
 
     color() {
-        return new THREE.Color(0x11ff00);
+        return new THREE.Color(0x115a00);
     }
 }
 
@@ -408,7 +410,7 @@ class Wood extends Block {
     }
 
     color() {
-        return new THREE.Color(0x8B4513);
+        return new THREE.Color(0xaB4513);
     }
 }
 
@@ -436,6 +438,8 @@ let chunk = new Chunk();
 
 gen_ground(chunk);
 // gen_tree(chunk, vector(Chunk.size.x / 2, 10, Chunk.size.z / 2));
+//
+gen_trees(chunk);
 
 const chunk_mesh = chunk.to_mesh();
 // chunk_mesh.position.x = Chunk.size.x / -2;
@@ -536,7 +540,7 @@ addEventListener('keydown', e => {
     else if(e.key == 'Shift') {
         controls.down = true;
     }
-    else if(e.key == 'z' || e.key == 'Z') {
+    else if(e.key == 'c' || e.key == 'C') {
         controls.sprint = !controls.sprint;
     }
 })
