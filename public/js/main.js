@@ -12,7 +12,7 @@ class Chunk {
         this.data = new Array(Chunk.blocks_count);
 
         for(let tile = 0; tile < Chunk.blocks_count; tile++) {
-            this.data[tile] = new Air();
+            this.data[tile] = air;
         }
     }
 
@@ -323,6 +323,7 @@ function face_to_direction(face) {
 class Block {
     constructor(id) {
         this.id = id;
+        this.baseColor = new THREE.Color(0);
     }
 
     invisible() {
@@ -341,7 +342,7 @@ class Block {
     }
 
     color() {
-        return new THREE.Color(0);
+        return this.baseColor;
     }
 }
 class Air extends Block {
@@ -353,76 +354,63 @@ class Air extends Block {
         return true;
     }
 }
+const air = new Air();
+
 class Stone extends Block {
     constructor() {
         super(1);
-    }
-
-    color() {
-        return new THREE.Color(0x444444);
+        this.baseColor = new THREE.Color(0x444444);
     }
 }
+const stone = new Stone();
 
 class Dirt extends Block {
     constructor() {
         super(2);
-    }
-
-    color() {
-        return new THREE.Color(0x6B350F);
+        this.baseColor = new THREE.Color(0x6B350F);
     }
 }
+const dirt = new Dirt();
 
 class Grass extends Block {
     constructor() {
         super(3);
-    }
-
-    color() {
-        return new THREE.Color(0x117f00);
+        this.baseColor = new THREE.Color(0x117f00);
     }
 }
-
+const grass = new Grass();
 
 class Sand extends Block {
     constructor() {
         super(4);
-    }
-
-    color() {
-        return new THREE.Color(0xEFDD6F);
+        this.baseColor = new THREE.Color(0xEFDD6F);
     }
 }
+const sand = new Sand();
 
 class Leaf extends Block {
     constructor() {
         super(5);
-    }
-
-    color() {
-        return new THREE.Color(0x115a00);
+        this.baseColor = new THREE.Color(0x115a00);
     }
 }
+const leaf = new Leaf();
 
 class Wood extends Block {
     constructor() {
         super(6);
-    }
-
-    color() {
-        return new THREE.Color(0xaB4513);
+        this.baseColor = new THREE.Color(0xaB4513);
     }
 }
+const wood = new Wood();
 
 class Snow extends Block {
     constructor() {
         super(7);
-    }
-
-    color() {
-        return new THREE.Color(0xdddddd);
+        this.baseColor = new THREE.Color(0xdddddd);
     }
 }
+const snow = new Snow();
 
 let controls = {
     forward: false,
@@ -437,8 +425,7 @@ let controls = {
 let chunk = new Chunk();
 
 gen_ground(chunk);
-// gen_tree(chunk, vector(Chunk.size.x / 2, 10, Chunk.size.z / 2));
-//
+// gen_ground_2(chunk);
 gen_trees(chunk);
 
 const chunk_mesh = chunk.to_mesh();

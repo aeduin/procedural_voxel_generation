@@ -36,7 +36,7 @@ function gen_tree(chunk, base_position) {
 
 function gen_branch(chunk, current_position, direction, max_length, height_from_base) {
     if(max_length <= 0 || (height_from_base >= 2 && direction.y < 0)) {
-        // chunk.set_at(current_position, new Leaf());
+        // chunk.set_at(current_position, leaf);
         generate_leaf(chunk, current_position, direction);
         return;
     }
@@ -78,7 +78,7 @@ function gen_branch(chunk, current_position, direction, max_length, height_from_
         }
     }
 
-    chunk.set_at(current_position, new Wood());
+    chunk.set_at(current_position, wood);
     
     gen_branch(chunk, current_position.clone().add(direction), direction, max_length - random(2) - 1, height_from_base + direction.y);
 }
@@ -117,13 +117,13 @@ function rotate_random(direction) {
 }
 
 function generate_leaf(chunk, position, direction) {
-    chunk.set_at(position, new Leaf());
+    chunk.set_at(position, leaf);
 
     const opposite_direction = direction.clone().multiplyScalar(-1);
 
     for(const new_direction of face_directions) {
         if(!new_direction.equals(opposite_direction)) {
-            chunk.set_at(position.clone().add(new_direction), new Leaf());
+            chunk.set_at(position.clone().add(new_direction), leaf);
         }
     }
 }
@@ -132,7 +132,7 @@ function gen_tree_old(chunk, base_position) {
     let trunk_position = base_position;
 
     for(let i = 0; i < 10; i++) {
-        chunk.set_at(trunk_position, new Wood());
+        chunk.set_at(trunk_position, wood);
 
         trunk_position = trunk_position.clone().add(vector(0, 1, 0));
     }
@@ -144,7 +144,7 @@ function gen_tree_old(chunk, base_position) {
 
 function gen_branch_old(chunk, base_position, max_depth) {
     if(max_depth <= 0) {
-        chunk.set_at(base_position, new Leaf());
+        chunk.set_at(base_position, leaf);
         return;
     }
 
@@ -154,7 +154,7 @@ function gen_branch_old(chunk, base_position, max_depth) {
 
     branches = random(4) + 1;
 
-    chunk.set_at(base_position, new Wood());
+    chunk.set_at(base_position, wood);
 
     for(let branch_index = 0; branch_index < branches; branch_index++) {
         const i = random(directions.length);

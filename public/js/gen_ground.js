@@ -1,42 +1,48 @@
 function gen_ground(chunk) {
-    const roughness_noise = new MaasNoise(Chunk.size.x / 128, Chunk.size.z / 128);
+    gen_ground_base(
+        chunk,
+        new MaasNoise(Chunk.size.x / 8, Chunk.size.z / 8),
+        new MaasNoise(Chunk.size.x / 128, Chunk.size.z / 128)
+    );
+}
 
-    const noise = new MaasNoise(Chunk.size.x / 8, Chunk.size.z / 8);
+function gen_ground_2(chunk) {
 
-    console.log(noise);
+}
 
+function gen_ground_base(chunk, height_noise, roughness_noise) {
     for(let x = 0; x < Chunk.size.x; x++) {
         for(let z = 0; z < Chunk.size.z; z++) {
             const roughness_sample = Math.abs(roughness_noise.value_at(x / 128, z / 128));
-            const height_sample = Math.abs(noise.value_at(x / 8, z / 8));
+            const height_sample = Math.abs(height_noise.value_at(x / 8, z / 8));
 
             const roughness = (roughness_sample ** 2 * 10) + 0.5;
             // const roughness = 5;
             const height =
                 Math.sqrt(height_sample * 30 + 5) * roughness
                 + roughness * 4;
-            // const height = noise.value_at(x / 8, z / 8) * 4;
+            // const height = height_noise.value_at(x / 8, z / 8) * 4;
 
             const dirt_layer = 1 + random(2);
 
             for(let y = 0; y < height - dirt_layer; y++) {
-                chunk.set_at(vector(x, y, z), new Stone());
+                chunk.set_at(vector(x, y, z), stone);
             }
 
             for(let y = Math.max(0, Math.floor(height - dirt_layer)); y < height; y++) {
-                chunk.set_at(vector(x, y, z), new Dirt());
+                chunk.set_at(vector(x, y, z), dirt);
             }
             
             let top_block;
             if(height - 60 > Math.random() * 5) {
-                top_block = new Snow();
+                top_block = snow;
             }
             else {
-                top_block = new Grass();
+                top_block = grass;
             }
             chunk.set_at(vector(x, Math.ceil(height), z), top_block);
             // if(random(2) == 0) {
-            //     chunk.set_at(vector(x, 1, z), new Sand());
+            //     chunk.set_at(vector(x, 1, z), sand);
             // }
         }
     }
