@@ -28,13 +28,29 @@ class Chunk {
         this.data[Chunk.position_to_index(position)] = new_block;
     }
 
-    *iter_indices() {
-        for(let x = 0; x < Chunk.size.x; x++) {
-            for(let y = 0; y < Chunk.size.y; y++) {
-                for(let z = 0; z < Chunk.size.z; z++) {
-                    const result = vector(x, y, z);
+    // iter_indices() {
+    //     const result = [];
 
-                    if(result.equals(Chunk.size.clone().subScalar(1))) {
+    //     for(let x = 0; x < Chunk.size.x; x++) {
+    //         for(let y = 0; y < Chunk.size.y; y++) {
+    //             for(let z = 0; z < Chunk.size.z; z++) {
+    //                 result.push(vector(x, y, z));
+    //             }
+    //         }
+    //     }
+
+    //     return result;
+    // }
+
+    *iter_indices() {
+        let result = vector(0, 0, 0);
+        const max = Chunk.size.clone().subScalar(1);
+
+        for(result.x = 0; result.x < Chunk.size.x; result.x++) {
+            for(result.y = 0; result.y < Chunk.size.y; result.y++) {
+                for(result.z = 0; result.z < Chunk.size.z; result.z++) {
+
+                    if(result.equals(max)) {
                         return result;
                     }
                     else {
@@ -133,8 +149,8 @@ class Chunk {
 
         const result = new THREE.Mesh(geometry, material)
 
-        // result.castShadow = true;
-        // result.receiveShadow = true;
+        result.castShadow = true;
+        result.receiveShadow = true;
 
         return result;
     }
@@ -184,6 +200,7 @@ window.addEventListener('resize', e => {
 
 const sun = new THREE.PointLight(0xffffaa, 1.5, 1000);
 sun.position.set(Chunk.size.x / 2, 100, Chunk.size.z / 2);
+sun.castShadow = true;
 scene.add(sun);
 
 const ambient_light = new THREE.AmbientLight(0x333333);
