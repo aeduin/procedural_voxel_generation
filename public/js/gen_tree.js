@@ -31,54 +31,73 @@ function gen_tree(chunk, base_position) {
         }
     }
 
-    gen_branch(chunk, base_position, vector(0, 1, 0), 20, 0);
+    gen_branch(chunk, base_position, 30);
 }
 
-function gen_branch(chunk, current_position, direction, max_length, height_from_base) {
-    if(max_length <= 0 || (height_from_base >= 2 && direction.y < 0)) {
-        generate_leaf(chunk, current_position, direction);
-        return;
-    }
-
+function gen_branch(chunk, start_position, max_length) {
     const leaf_chance = 0.5;
-    const branch_chance = 0.3;
+    const branch_chance = 0.5;
     const target_height = 10;
-    const min_height = 4;
 
-    if(Math.random() < leaf_chance) {
-        const new_direction = rotate_random(direction);
+    let stack = [
+        {
+            position: start_position,
+            direction: vector(0, 1, 0),
+            max_length,
+            height_from_base: 0,
+        }
+    ];
 
-        gen_branch(chunk, current_position.clone().add(new_direction), new_direction, 0, height_from_base + new_direction.y);
-    }
+    while(stack.length > 0) {
+        const { position, direction, max_length, height_from_base } = stack.pop();
 
-    if(Math.random() < branch_chance) {
-        const up_bias = Math.max(0, 1 - height_from_base / target_height);
-
-        let new_direction = null;
-
-        if(Math.random() < up_bias) {
-            if(direction.y === 0) { // Don't branch if we're already going up or down
-                new_direction = vector(0, 1, 0);
-            }
+        if(max_length <= 0 || (height_from_base >= 2 && direction.y < 0)) {
+            generate_leaf(chunk, position, direction);
         }
         else {
-            new_direction = rotate_random(direction);
-        }
+            if(Math.random() < leaf_chance) {
+                const new_direction = rotate_random(direction);
 
-        if(new_direction !== null) {
-            gen_branch(
-                chunk,
-                current_position.clone().add(new_direction),
-                new_direction,
-                max_length / 2 - 1,
-                height_from_base + new_direction.y
-            );
+                generate_leaf(chunk, position.clone().add(new_direction), new_direction);
+            }
+
+            if(Math.random() < branch_chance) {
+                const up_bias = Math.max(0, 1 - height_from_base / target_height);
+
+                let new_direction = null;
+
+                if(Math.random() < up_bias) {
+                    if(direction.y === 0) { // Don't branch if we're already going up or down
+                        new_direction = vector(0, 1, 0);
+                    }
+                }
+                else {
+                    new_direction = rotate_random(direction);
+                }
+
+                if(new_direction !== null) {
+                    stack.push(
+                        {
+                            position: position.clone().add(new_direction),
+                            direction: new_direction,
+                            max_length: max_length / 2 - 1,
+                            height_from_base: height_from_base + new_direction.y
+                        }
+                    );
+                }
+            }
+
+            chunk.set_at(position, wood);
+            
+            stack.push({
+                position: position.clone().add(direction),
+                direction,
+                max_length: max_length - random(2) - 1,
+                height_from_base: height_from_base + direction.y,
+            });
         }
     }
 
-    chunk.set_at(current_position, wood);
-    
-    gen_branch(chunk, current_position.clone().add(direction), direction, max_length - random(2) - 1, height_from_base + direction.y);
 }
 
 function rotate_random(direction) {
@@ -119,11 +138,21 @@ function generate_leaf(chunk, position, direction) {
 
     const opposite_direction = direction.clone().multiplyScalar(-1);
 
-    for(const new_direction of face_directions) {
-        if(!new_direction.equals(opposite_direction)) {
-            chunk.set_at(position.clone().add(new_direction), leaf);
-        }
+    let directions = face_directions_xyz.slice();
+    const idx = face_directions.findIndex(v => !v.equals(opposite_direction));
+
+    directions.splice(idx * 3, 3);
+
+    let block_pos = vector(0, 0, 0);
+    
+    for(let i = 0; i < 5; i++) {
+        block_pos.x = directions[i * 3 + 0] + position.x;
+        block_pos.y = directions[i * 3 + 1] + position.y;
+        block_pos.z = directions[i * 3 + 2] + position.z;
+
+        chunk.set_at(block_pos, leaf);
     }
+
 }
 
 function gen_tree_old(chunk, base_position) {

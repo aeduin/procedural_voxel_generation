@@ -1,7 +1,35 @@
 const vector = (x, y, z) => new THREE.Vector3(x, y, z);
 
+const vector_as_array = ({x, y, z}) => [x, y, z];
+THREE.Vector3.prototype.as_array = function() { return vector_as_array(this) }
+
+THREE.Vector3.prototype.modulo = function(m) {
+    this.x %= m;
+    this.y %= m;
+    this.z %= m;
+    return this;
+}
+
+THREE.Vector3.prototype.abs = function() {
+    this.x = Math.abs(this.x);
+    this.y = Math.abs(this.y);
+    this.z = Math.abs(this.z);
+    return this;
+}
+
+function min(array) {
+    let smallest_i = 0
+    for(let i = 0; i < array.length; i++) {
+        if(array[i] < array[smallest_i]) {
+            smallest_i = i;
+        }
+    }
+
+    return { idx: smallest_i, value: array[smallest_i] };
+}
+
 class Chunk {
-    static size = vector(256, 192, 256);
+    static size = vector(256, 256, 256);
     static blocks_count = Chunk.size.x * Chunk.size.y * Chunk.size.z;
 
     static position_to_index(position) {
@@ -25,10 +53,14 @@ class Chunk {
     }
 
     set_at(position, new_block) {
+        if(position.x < 0 || position.x >= Chunk.size.x || position.y < 0 || position.y >= Chunk.size.y || position.z < 0 || position.z >= Chunk.size.z) {
+            return;
+        }
+
         this.data[Chunk.position_to_index(position)] = new_block;
     }
 
-    // iter_indices() {
+        // iter_indices() {
     //     const result = [];
 
     //     for(let x = 0; x < Chunk.size.x; x++) {
@@ -62,12 +94,27 @@ class Chunk {
         }
     }
 
-    to_mesh() {
+    vertices_and_colors() {
         let all_vertices = [];
 
         let all_colors = [];
 
         let faces_count = 0;
+
+        function push(vertex_info) {
+            const { vertices, color } = vertex_info;
+
+            for(const {x, y, z} of vertices) {
+                all_vertices.push(x, y, z);
+            }
+            // all_vertices.push(...vertices)
+
+            for(let i = 0; i < 4; i++) {
+                all_colors.push(color.r, color.g, color.b);
+            }
+
+            faces_count += 1;
+        }
 
         for(const position of this.iter_indices()) {
             // const {x, y, z} = position;
@@ -92,18 +139,17 @@ class Chunk {
                     const vertex_info = block.face(position, face);
                     
                     if(vertex_info !== null) {
-                        const { vertices, color } = vertex_info;
-                        all_vertices.push(...vertices)
-
-                        for(let i = 0; i < 4; i++) {
-                            all_colors.push(color);
-                        }
-
-                        faces_count += 1;
+                        push(vertex_info);
                     }
                 }
             }
         }
+
+        return { all_vertices, all_colors, faces_count };
+    }
+
+    to_mesh() {
+        const { all_vertices, all_colors, faces_count } = this.vertices_and_colors();
 
         let geometry = new THREE.BufferGeometry();
         let material = new THREE.MeshPhongMaterial({
@@ -116,14 +162,22 @@ class Chunk {
         material.vertexColors = true;
         
         // let material = new THREE.MeshBasicMaterial( { vertexColors: true } );
+        //
+        const map_vertices = () => 
+            // all_vertices.flatMap(({x, y, z}) => [x, y, z]);
+            all_vertices
+
+        const map_colors = () =>
+            // all_colors.flatMap(({r, g, b}) => [r, g, b]);
+            all_colors
 
         const pos = new THREE.Float32BufferAttribute(
-            all_vertices.flatMap(({x, y, z}) => [x, y, z]),
+            map_vertices(),
             3
         );
 
         const col = new THREE.Float32BufferAttribute(
-            all_colors.flatMap(({r, g, b}) => [r, g, b]),
+            map_colors(),
             3
         );
 
@@ -156,6 +210,21 @@ class Chunk {
     }
 }
 
+class World {
+    constructor(size) {
+        this.size = size;
+
+        this.chunks = new Array(this.size.x * this.size.y, this.size.z);
+
+
+    }
+
+    *iter_indices() {
+    }
+
+
+}
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -171,7 +240,7 @@ document.body.appendChild(renderer.domElement);
 
 let view = {
     horizontal_rotation: 0,
-    vertical_rotation: 0,
+    vertical_rotation: -1,
 }
 
 let pointer_locked = false;
@@ -199,7 +268,7 @@ window.addEventListener('resize', e => {
 });
 
 const sun = new THREE.PointLight(0xffffaa, 1.5, 1000);
-sun.position.set(Chunk.size.x / 2, 100, Chunk.size.z / 2);
+sun.position.set(Chunk.size.x / 2, 200, Chunk.size.z / 2);
 sun.castShadow = true;
 scene.add(sun);
 
@@ -237,7 +306,8 @@ const facing = {
 
 const faces = [0, 1, 2, 3, 4, 5]
 
-const face_directions= faces.map(face_to_direction);
+const face_directions = faces.map(face_to_direction);
+const face_directions_xyz = face_directions.flatMap(({x, y, z}) => [x, y, z]);
 
 function random(max) {
     return Math.floor(Math.random() * max);
@@ -325,6 +395,9 @@ class Block {
         return this.invisible();
     }
 
+    solid() {
+        return !this.invisible();
+    }
 
     face(position, facing) {
         const vertices = face_to_side_coordinates(facing).map(cor => cor.add(position));
@@ -411,6 +484,7 @@ let controls = {
     up: false,
     down: false,
     sprint: false,
+    jump: false,
 }
 
 let chunk = new Chunk();
@@ -423,31 +497,37 @@ const chunk_mesh = chunk.to_mesh();
 
 scene.add(chunk_mesh);
 
-camera.position.z = 30;
-camera.position.y = 20;
 camera.position.x = Chunk.size.x / 2;
+camera.position.y = 300;
+camera.position.z = Chunk.size.z / 2;
+
+let falling_speed = 5;
 
 function animate() {
     let move_speed = 0.2;
+    falling_speed += 0.015
+
     if(controls.sprint) {
         move_speed *= 4;
     }
 
+    let movement = vector(0, 0, 0);
+
     if(controls.forward) {
-        camera.position.z -= Math.cos(view.horizontal_rotation) * move_speed;
-        camera.position.x -= Math.sin(view.horizontal_rotation) * move_speed;
+        movement.z -= Math.cos(view.horizontal_rotation) * move_speed;
+        movement.x -= Math.sin(view.horizontal_rotation) * move_speed;
     }
     if(controls.backward) {
-        camera.position.z += Math.cos(view.horizontal_rotation) * move_speed;
-        camera.position.x += Math.sin(view.horizontal_rotation) * move_speed;
+        movement.z += Math.cos(view.horizontal_rotation) * move_speed;
+        movement.x += Math.sin(view.horizontal_rotation) * move_speed;
     }
     if(controls.right) {
-        camera.position.z -= Math.sin(view.horizontal_rotation) * move_speed;
-        camera.position.x += Math.cos(view.horizontal_rotation) * move_speed;
+        movement.z -= Math.sin(view.horizontal_rotation) * move_speed;
+        movement.x += Math.cos(view.horizontal_rotation) * move_speed;
     }
     if(controls.left) {
-        camera.position.z += Math.sin(view.horizontal_rotation) * move_speed;
-        camera.position.x -= Math.cos(view.horizontal_rotation) * move_speed;
+        movement.z += Math.sin(view.horizontal_rotation) * move_speed;
+        movement.x -= Math.cos(view.horizontal_rotation) * move_speed;
     }
 
     if(controls.turn_left) {
@@ -456,11 +536,64 @@ function animate() {
     if(controls.turn_right) {
         // camera.rotation.y -= 0.05;
     }
-    if(controls.up) {
-        camera.position.y += move_speed;
+    // if(controls.up) {
+    //     movement.y += move_speed;
+    // }
+    // if(controls.down) {
+    //     movement.y -= move_speed;
+    // }
+    
+    if(controls.jump) {
+        falling_speed = -0.3;
     }
-    if(controls.down) {
-        camera.position.y -= move_speed;
+    movement.y -= falling_speed;
+    
+    while(true) {
+        const movement_length = movement.length();
+
+        if(movement_length > 0.05) {
+            const movement_direction = movement.clone().divideScalar(movement_length);
+
+            const { distance_travelled, hit_block, last_direction_idx } = raycast(
+                chunk,
+                camera.position.clone().sub(vector(0.4, 2.1, 0.4)),
+                camera.position.clone().add(vector(0.4, 0.3, 0.4)),
+                movement_direction,
+                movement_length
+            );
+
+            console.log(distance_travelled);
+            const move_amount = movement_direction.clone().multiplyScalar(distance_travelled);
+            
+            sign = n => n < 0 ? -1 : (n === 0 ? 0 : 1);
+
+            move_amount.sub(vector(sign(move_amount.x), sign(move_amount.y), sign(move_amount.z)).multiplyScalar(0.01))
+
+            if(distance_travelled > 0.05) {
+                camera.position.add(move_amount);
+            }
+
+            if(hit_block) {
+                movement.sub(move_amount);
+
+                if(last_direction_idx === 0) {
+                    movement.x = 0;
+                }
+                else if(last_direction_idx === 1) {
+                    movement.y = 0;
+                    falling_speed = 0;
+                }
+                else if(last_direction_idx === 2) {
+                    movement.z = 0;
+                }
+            }
+            else {
+                break;
+            }
+        }
+        else {
+            break
+        }
     }
 
     camera.rotation.setFromRotationMatrix(
@@ -476,7 +609,8 @@ function animate() {
     //
 
     // console.log(camera.rotation);
-
+    
+    controls.jump = false;
     requestAnimationFrame( animate );
     renderer.render( scene, camera );
 }
@@ -504,6 +638,7 @@ addEventListener('keydown', e => {
     }
     else if(e.key == ' ') {
         controls.up = true;
+        controls.jump = true;
     }
     else if(e.key == 'Shift') {
         controls.down = true;
