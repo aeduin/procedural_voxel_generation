@@ -143,7 +143,7 @@ class Chunk {
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-const  renderer = new THREE.WebGLRenderer({
+const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
 });
@@ -169,44 +169,18 @@ document.addEventListener('pointerlockchange', e => {
 });
 
 addEventListener('mousemove', e => {
-    // console.log(e, pointer_locked, e.movementX, e.movementY);
-
     if(pointer_locked) {
-        // console.log(e.movementX, e.movementY);
         view.horizontal_rotation -= (e.movementX) / 1000;
         view.vertical_rotation -= e.movementY / 1000;
     }
 });
 
-const geometry = new THREE.BufferGeometry();
-const vertices = new Float32Array([
-    0, 0, 0,
-    1, 0, 0,
-    0, 1, 0,
-    1, 1, 0,
-]);
+window.addEventListener('resize', e => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
 
-const indices = new Uint32Array([
-    0, 1, 2,
-    3, 2, 1,
-])
-// geometry.addAttribute( 'index', new THREE.BufferAttribute( indices, 3 ) );
-geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3))
-geometry.setIndex(new THREE.BufferAttribute(indices, 1))
-geometry.computeBoundingSphere();
-geometry.computeBoundingBox();
-
-// geometry.vertices.push(new THREE.Vector3(0, 0, 0));
-// geometry.vertices.push(new THREE.Vector3(0, 100, 0));
-// geometry.vertices.push(new THREE.Vector3(100, 0, 0));
-
-// geometry.faces.push(new THREE.Face3(0, 1, 2));
-
-const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-
-const mesh = new THREE.Mesh( geometry, material );
-mesh.position.z = 1
-// scene.add(mesh);
+    renderer.setSize( window.innerWidth, window.innerHeight );
+});
 
 const sun = new THREE.PointLight(0xffffaa, 1.5, 1000);
 sun.position.set(Chunk.size.x / 2, 100, Chunk.size.z / 2);
@@ -429,9 +403,6 @@ gen_ground(chunk);
 gen_trees(chunk);
 
 const chunk_mesh = chunk.to_mesh();
-// chunk_mesh.position.x = Chunk.size.x / -2;
-// chunk_mesh.position.y = Chunk.size.y / -2;
-// chunk_mesh.position.z = Chunk.size.z * -1.1;
 
 scene.add(chunk_mesh);
 
@@ -440,16 +411,9 @@ camera.position.y = 20;
 camera.position.x = Chunk.size.x / 2;
 
 function animate() {
-    // console.log(controls)
-    mesh.rotation.x += 0.01;
-    mesh.rotation.y += 0.01;
-
-    // chunk_mesh.rotation.x += 0.01;
-    // chunk_mesh.rotation.y += 0.01;
-    
     let move_speed = 0.2;
     if(controls.sprint) {
-        move_speed *= 2;
+        move_speed *= 4;
     }
 
     if(controls.forward) {

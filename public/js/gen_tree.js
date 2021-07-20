@@ -36,7 +36,6 @@ function gen_tree(chunk, base_position) {
 
 function gen_branch(chunk, current_position, direction, max_length, height_from_base) {
     if(max_length <= 0 || (height_from_base >= 2 && direction.y < 0)) {
-        // chunk.set_at(current_position, leaf);
         generate_leaf(chunk, current_position, direction);
         return;
     }
@@ -60,7 +59,6 @@ function gen_branch(chunk, current_position, direction, max_length, height_from_
         if(Math.random() < up_bias) {
             if(direction.y === 0) { // Don't branch if we're already going up or down
                 new_direction = vector(0, 1, 0);
-                // gen_branch(chunk, current_position.clone().add(up), up, max_length / 2 - 1, height_from_base + up.y);
             }
         }
         else {
