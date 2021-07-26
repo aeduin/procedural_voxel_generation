@@ -1,18 +1,18 @@
-function gen_ground(chunk) {
+function gen_ground(world) {
     gen_ground_base(
-        chunk,
-        new MaasNoise(Chunk.size.x / 8, Chunk.size.z / 8),
-        new MaasNoise(Chunk.size.x / 128, Chunk.size.z / 128)
+        world,
+        new MaasNoise(world.blocks_size.x / 8, world.blocks_size.z / 8),
+        new MaasNoise(world.blocks_size.x / 128, world.blocks_size.z / 128)
     );
 }
 
-function gen_ground_2(chunk) {
+function gen_ground_2(world) {
 
 }
 
-function gen_ground_base(chunk, height_noise, roughness_noise) {
-    for(let x = 0; x < Chunk.size.x; x++) {
-        for(let z = 0; z < Chunk.size.z; z++) {
+function gen_ground_base(world, height_noise, roughness_noise) {
+    for(let x = 0; x < world.blocks_size.x; x++) {
+        for(let z = 0; z < world.blocks_size.z; z++) {
             const roughness_sample = Math.abs(roughness_noise.value_at(x / 128, z / 128));
             const height_sample = Math.abs(height_noise.value_at(x / 8, z / 8));
 
@@ -26,11 +26,11 @@ function gen_ground_base(chunk, height_noise, roughness_noise) {
             const dirt_layer = 1 + random(2);
 
             for(let y = 0; y < height - dirt_layer; y++) {
-                chunk.set_at(vector(x, y, z), stone);
+                world.set_at(vector(x, y, z), stone);
             }
 
             for(let y = Math.max(0, Math.floor(height - dirt_layer)); y < height; y++) {
-                chunk.set_at(vector(x, y, z), dirt);
+                world.set_at(vector(x, y, z), dirt);
             }
             
             let top_block;
@@ -40,9 +40,9 @@ function gen_ground_base(chunk, height_noise, roughness_noise) {
             else {
                 top_block = grass;
             }
-            chunk.set_at(vector(x, Math.ceil(height), z), top_block);
+            world.set_at(vector(x, Math.ceil(height), z), top_block);
             // if(random(2) == 0) {
-            //     chunk.set_at(vector(x, 1, z), sand);
+            //     world.set_at(vector(x, 1, z), sand);
             // }
         }
     }

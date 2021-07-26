@@ -1,21 +1,21 @@
-function gen_trees(chunk) {
-    const forest_noise = new MaasNoise(Chunk.size.x / 64, Chunk.size.z / 64);
+function gen_trees(world) {
+    const forest_noise = new MaasNoise(world.blocks_size.x / 64, world.blocks_size.z / 64);
     
-    const tree_attempts_count = Chunk.size.x * Chunk.size.z / 128;
+    const tree_attempts_count = world.blocks_size.x * world.blocks_size.z / 128;
 
     for(let tree_id = 0; tree_id < tree_attempts_count; tree_id++) {
-        const considered_location = vector(random(Chunk.size.x), Chunk.size.y, random(Chunk.size.z));
+        const considered_location = vector(random(world.blocks_size.x), world.blocks_size.y, random(world.blocks_size.z));
 
         const tree_chance = forest_noise.value_at(considered_location.x / 64, considered_location.z / 64);
         
         if(Math.random() < tree_chance) {
-            gen_tree(chunk, considered_location);
+            gen_tree(world, considered_location);
         }
     }
 }
 
 
-function gen_tree(chunk, base_position) {
+function gen_tree(world, base_position) {
     while(true) {
         base_position.y -= 1;
 
@@ -23,7 +23,7 @@ function gen_tree(chunk, base_position) {
             return;
         }
 
-        const block_below = chunk.get_at(base_position);
+        const block_below = world.get_at(base_position);
 
         if(block_below !== null && !block_below.invisible()) {
             base_position.y += 1;
@@ -31,10 +31,10 @@ function gen_tree(chunk, base_position) {
         }
     }
 
-    gen_branch(chunk, base_position, 30);
+    gen_branch(world, base_position, 30);
 }
 
-function gen_branch(chunk, start_position, max_length) {
+function gen_branch(world, start_position, max_length) {
     const leaf_chance = 0.5;
     const branch_chance = 0.5;
     const target_height = 10;
@@ -52,13 +52,13 @@ function gen_branch(chunk, start_position, max_length) {
         const { position, direction, max_length, height_from_base } = stack.pop();
 
         if(max_length <= 0 || (height_from_base >= 2 && direction.y < 0)) {
-            generate_leaf(chunk, position, direction);
+            generate_leaf(world, position, direction);
         }
         else {
             if(Math.random() < leaf_chance) {
                 const new_direction = rotate_random(direction);
 
-                generate_leaf(chunk, position.clone().add(new_direction), new_direction);
+                generate_leaf(world, position.clone().add(new_direction), new_direction);
             }
 
             if(Math.random() < branch_chance) {
@@ -87,7 +87,7 @@ function gen_branch(chunk, start_position, max_length) {
                 }
             }
 
-            chunk.set_at(position, wood);
+            world.set_at(position, wood);
             
             stack.push({
                 position: position.clone().add(direction),
@@ -133,8 +133,8 @@ function rotate_random(direction) {
     return new_direction;
 }
 
-function generate_leaf(chunk, position, direction) {
-    chunk.set_at(position, leaf);
+function generate_leaf(world, position, direction) {
+    world.set_at(position, leaf);
 
     const opposite_direction = direction.clone().multiplyScalar(-1);
 
@@ -150,28 +150,28 @@ function generate_leaf(chunk, position, direction) {
         block_pos.y = directions[i * 3 + 1] + position.y;
         block_pos.z = directions[i * 3 + 2] + position.z;
 
-        chunk.set_at(block_pos, leaf);
+        world.set_at(block_pos, leaf);
     }
 
 }
 
-function gen_tree_old(chunk, base_position) {
+function gen_tree_old(world, base_position) {
     let trunk_position = base_position;
 
     for(let i = 0; i < 10; i++) {
-        chunk.set_at(trunk_position, wood);
+        world.set_at(trunk_position, wood);
 
         trunk_position = trunk_position.clone().add(vector(0, 1, 0));
     }
 
-    gen_branch(chunk, trunk_position, 40);
-    gen_branch(chunk, trunk_position, 40);
-    gen_branch(chunk, trunk_position, 40);
+    gen_branch(world, trunk_position, 40);
+    gen_branch(world, trunk_position, 40);
+    gen_branch(world, trunk_position, 40);
 }
 
-function gen_branch_old(chunk, base_position, max_depth) {
+function gen_branch_old(world, base_position, max_depth) {
     if(max_depth <= 0) {
-        chunk.set_at(base_position, leaf);
+        world.set_at(base_position, leaf);
         return;
     }
 
@@ -181,7 +181,7 @@ function gen_branch_old(chunk, base_position, max_depth) {
 
     branches = random(4) + 1;
 
-    chunk.set_at(base_position, wood);
+    world.set_at(base_position, wood);
 
     for(let branch_index = 0; branch_index < branches; branch_index++) {
         const i = random(directions.length);
@@ -189,7 +189,7 @@ function gen_branch_old(chunk, base_position, max_depth) {
         const direction = directions[i];
         directions.splice(i, 1);
 
-        gen_branch(chunk, base_position.clone().add(direction), max_depth - random(2) - 1);
+        gen_branch(world, base_position.clone().add(direction), max_depth - random(2) - 1);
     }
 
     for(let leaf_index = 0; leaf_index < leaf_count; leaf_index++) {                     
@@ -198,7 +198,7 @@ function gen_branch_old(chunk, base_position, max_depth) {
         direction = directions[i];                                                   
         directions.splice(i, 1);                                                     
                                                                                      
-        gen_branch(chunk, base_position.clone().add(direction), -1);                 
+        gen_branch(world, base_position.clone().add(direction), -1);                 
     }  
 }
 

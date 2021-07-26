@@ -1,5 +1,5 @@
 function raycast(chunk, smaller_corner, greater_corner, direction, max_length) {
-    console.log('direction =', direction);
+    // console.log('direction =', direction);
 
     let distance_travelled = 0;
 
@@ -27,7 +27,7 @@ function raycast(chunk, smaller_corner, greater_corner, direction, max_length) {
     function min_move_length(position) {
         const distance_to_next_block =
             position.clone()
-            .modulo(1)
+            .moduloScalar(1)
             .multiplyScalar(-1)
             .add(direction_is_positive)
             .abs()
@@ -41,7 +41,7 @@ function raycast(chunk, smaller_corner, greater_corner, direction, max_length) {
     }
 
     while(true) {
-        console.log('positions =', smaller_position, greater_position);
+        // console.log('positions =', smaller_position, greater_position);
 
         // if(isNaN(position.x) || isNaN(position.y) || isNaN(position.z)) {
         //     console.log('oops position');
@@ -55,11 +55,11 @@ function raycast(chunk, smaller_corner, greater_corner, direction, max_length) {
         for(check_at.x = floored_smaller_position.x; check_at.x <= greater_position.x; check_at.x++) {
             for(check_at.y = floored_smaller_position.y; check_at.y <= greater_position.y; check_at.y++) {
                 for(check_at.z = floored_smaller_position.z; check_at.z <= greater_position.z; check_at.z++) {
-                    console.log('check_at =', check_at);
+                    // console.log('check_at =', check_at);
                     const block_here = chunk.get_at(check_at)
 
                     if(block_here !== null && block_here.solid()) {
-                        console.log('hit block after travelling ', distance_travelled);
+                        // console.log('hit block after travelling ', distance_travelled);
                         return { hit_block: true, distance_travelled, last_direction_idx };
                     }
                 }
@@ -77,18 +77,18 @@ function raycast(chunk, smaller_corner, greater_corner, direction, max_length) {
             last_direction_idx = min_2.idx;
         }
 
-        console.log('move_length =', move_length);
+        // console.log('move_length =', move_length);
         distance_travelled += move_length;
 
         if(distance_travelled > max_length) {
             return { hit_block: false, distance_travelled: max_length };
             // last_iteration = true;
         }
-        console.log('move_length =', move_length);
+        // console.log('move_length =', move_length);
         const move = direction.clone().multiplyScalar(move_length);
 
         if(isNaN(move.x) || isNaN(move.y) || isNaN(move.z)) {
-            console.log('oops move');
+            // console.log('oops move');
         }
         // position.add(move);
         smaller_position.add(move);
