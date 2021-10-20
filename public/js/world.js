@@ -151,20 +151,20 @@ class Chunk {
             }
 
             for(const face of faces) {
-                const neigbhour_position = position.clone().add(face_to_direction(face));
+                const neighbour_position = position.clone().add(face_to_direction(face));
 
-                let neighbour = this.get_at(neigbhour_position);
+                let neighbour = this.get_at(neighbour_position);
                 if(neighbour === null) {
                     const neighbour_chunk = neighbour_chunks[face];
                     if(neighbour_chunk !== null) {
-                        const position_in_neighbour_chunk = neigbhour_position.clone().sub(
+                        const position_in_neighbour_chunk = neighbour_position.clone().sub(
                             face_to_direction(face).multiply(Chunk.size)
                         );
                         neighbour = neighbour_chunk.get_at(position_in_neighbour_chunk);
                     }
                 }
 
-                if(neighbour == null || neighbour.transparent()) {
+                if(neighbour === null || neighbour.transparent()) {
                     const vertex_info = block.face(position, face);
                     
                     if(vertex_info !== null) {
@@ -177,8 +177,8 @@ class Chunk {
         return { all_vertices, all_colors, faces_count };
     }
 
-    to_mesh(chunk_position) {
-        const { all_vertices, all_colors, faces_count } = this.vertices_and_colors(chunk_position);
+    to_mesh(neighbour_chunks) {
+        const { all_vertices, all_colors, faces_count } = this.vertices_and_colors(neighbour_chunks);
 
         let geometry = new THREE.BufferGeometry();
         let material = new THREE.MeshPhongMaterial({

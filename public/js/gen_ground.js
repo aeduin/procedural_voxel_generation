@@ -16,10 +16,10 @@ function gen_ground_base(world, height_noise, roughness_noise) {
             const roughness_sample = Math.abs(roughness_noise.value_at(x / 128, z / 128));
             const height_sample = Math.abs(height_noise.value_at(x / 8, z / 8));
 
-            const roughness = (roughness_sample ** 2 * 10) + 0.5;
+            const roughness = (roughness_sample ** 2 * 20) + 0.5;
             // const roughness = 5;
             const height =
-                Math.sqrt(height_sample * 30 + 5) * roughness
+                Math.sqrt(height_sample * 40 + 5) * roughness
                 + roughness * 4;
             // const height = height_noise.value_at(x / 8, z / 8) * 4;
 
@@ -103,7 +103,8 @@ class MaasNoise {
                     // this.grid[idx] * distance_to_corner_x *.5
                     // + this.grid[idx + 1] * distance_to_corner_y *.5
                     + this.grid[idx]
-                ) * Math.min(1 - distance_to_corner_x, 1 - distance_to_corner_y);
+                ) * ((1 - distance_to_corner_x) * (1 - distance_to_corner_y))
+                // * Math.min(1 - distance_to_corner_x, 1 - distance_to_corner_y);
         }
 
         return result;
