@@ -1,5 +1,7 @@
 world_size = vector(8, 1, 8);
-world_blocks_size = world_size.clone().multiply(Chunk.size);
+world_height = 256
+const chunk_size = vector(Chunk.size.x, world_height, Chunk.size.y);
+world_blocks_size = world_size.clone().multiply(chunk_size);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -195,7 +197,7 @@ function animate() {
         ;
 
         const chunk_mesh = world.chunks.get_at(chunk_position).to_mesh(neighbours);
-        const p = chunk_position.clone().multiply(Chunk.size);
+        const p = chunk_position.clone().multiply(chunk_size);
         chunk_mesh.position.set(p.x, p.y, p.z);
 
         scene.add(chunk_mesh);

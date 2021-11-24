@@ -1,8 +1,8 @@
 function gen_random(chunk) {
     for(let i = 0; i < 10000; i++) {
-        x = Math.floor(Math.random() * Chunk.size.x);
-        y = Math.floor(Math.random() * Chunk.size.y);
-        z = Math.floor(Math.random() * Chunk.size.z);
+        x = Math.floor(Math.random() * chunk_size.x);
+        y = Math.floor(Math.random() * chunk_size.y);
+        z = Math.floor(Math.random() * chunk_size.z);
 
         r_type = Math.random();
         
