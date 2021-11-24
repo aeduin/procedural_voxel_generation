@@ -1,3 +1,53 @@
+const vector2 = (x, y) => new THREE.Vector2(x, y);
+
+class Array2D {
+    constructor(size) {
+        this.data = new Array(size.x * size.y);
+        this.size = size;
+    }
+
+    position_to_index(position) {
+        return position.x * this.size.y + position.y
+    }
+
+    in_bounds(position) {
+        return !(
+            position.x < 0 ||
+            position.x >= this.size.x ||
+            position.y < 0 ||
+            position.y >= this.size.y
+        );
+    }
+
+    get_at(position) {
+        if(!this.in_bounds(position)) {
+            return null;
+        }
+
+        return this.data[this.position_to_index(position)];
+    }
+
+    set_at(position, new_value) {
+        if(!this.in_bounds(position)) {
+            return false;
+        }
+        else {
+            this.data[this.position_to_index(position)] = new_value;
+            return true;
+        }
+    }
+
+    *iter_indices() {
+        let result = vector2(0, 0);
+
+        for(result.x = 0; result.x < this.size.x; result.x++) {
+            for(result.y = 0; result.y < this.size.y; result.y++) {
+                yield result;
+            }
+        }
+    }
+}
+
 class Array3D {
     constructor(size) {
         this.data = new Array(size.x * size.y * size.z);
@@ -39,7 +89,6 @@ class Array3D {
 
     *iter_indices() {
         let result = vector(0, 0, 0);
-        const max = this.size.clone().subScalar(1);
 
         for(result.x = 0; result.x < this.size.x; result.x++) {
             for(result.y = 0; result.y < this.size.y; result.y++) {

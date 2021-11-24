@@ -1,4 +1,4 @@
-world_size = vector(16, 1, 16);
+world_size = vector(8, 1, 8);
 world_blocks_size = world_size.clone().multiply(Chunk.size);
 
 const scene = new THREE.Scene();
@@ -268,8 +268,18 @@ function animate() {
             const move_amount = movement_direction.clone().multiplyScalar(distance_travelled);
             
             sign = n => n < 0 ? -1 : (n === 0 ? 0 : 1);
+            epsilon = 0.001
 
-            move_amount.sub(vector(sign(move_amount.x), sign(move_amount.y), sign(move_amount.z)).multiplyScalar(0.01))
+            const move_sign = vector(sign(move_amount.x), sign(move_amount.y), sign(move_amount.z))
+            const absolute_movement = move_amount.clone().multiply(move_sign)
+            const move_back = vector(
+                Math.min(epsilon, absolute_movement.x),
+                Math.min(epsilon, absolute_movement.y),
+                Math.min(epsilon, absolute_movement.z),
+            )
+
+
+            move_amount.sub(move_back.multiply(move_sign))
 
             if(distance_travelled > 0.05) {
                 camera.position.add(move_amount);

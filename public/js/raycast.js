@@ -47,7 +47,7 @@ function raycast(chunk, smaller_corner, greater_corner, direction, max_length) {
         //     console.log('oops position');
         // }
 
-        floored_smaller_position = smaller_position.clone().add(direction.clone().multiplyScalar(0.001)).floor();
+        floored_smaller_position = smaller_position.clone().add(direction.clone().multiplyScalar(0.0001)).floor();
         floored_greater_position = greater_position.clone().floor();
 
         let check_at = vector(0, 0, 0);
