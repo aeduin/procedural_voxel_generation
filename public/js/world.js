@@ -220,36 +220,90 @@ class Chunk {
             faces_count += 1;
         }
 
-        for(const position of this.iter_indices()) {
-            const block = this.get_at(position);
+        for(let x = 0; x < Chunk.size.x; x++) {
+            for(let z = 0; z < Chunk.size.y; z++) {
+                const here_with_neighbours = [[0, 0, 0], [-1, 0, 1], [1, 0, 2], [0, -1, 3], [0, 1, 4]];
+                xy_data_with_neighbours = Array(5);
 
-            if(block.invisible()) {
-                continue;
-            }
+                for(const [dx, dy, i] of here_with_neighbours) {
+                    const get_at = vector2(x + dx, y + dy);
+                    let get_from;
 
-            for(const face of faces) {
-                const neighbour_position = position.clone().add(face_to_direction(face));
-
-                let neighbour = this.get_at(neighbour_position);
-                if(neighbour === null) {
-                    const neighbour_chunk = neighbour_chunks[face];
-                    if(neighbour_chunk !== null) {
-                        const position_in_neighbour_chunk = neighbour_position.clone().sub(
-                            face_to_direction(face).multiply(chunk_size)
-                        );
-                        neighbour = neighbour_chunk.get_at(position_in_neighbour_chunk);
+                    if(get_at.x < 0){
+                        get_from = neighbour_chunks[i + 1]
+                        postion.x += Chunk.size.x;
                     }
+                    else if(get_at.x >= Chunk.size.x){
+                        get_from = neighbour_chunks[i + 1]
+                        postion.x -= Chunk.size.x;
+                    }
+                    else if(get_at.y < 0){
+                        get_from = neighbour_chunks[i + 1]
+                        postion.y += Chunk.size.x;
+                    }
+                    else if(get_at.y >= Chunk.size.y) {
+                        get_from = neighbour_chunks[i + 1]
+                        postion.y -= Chunk.size.x;
+                    }
+                    else {
+                        get_from = this;
+                    }
+
+                    xy_data_with_neighbours[i] = get_from.data.get_at(get_at)
                 }
 
-                if(neighbour === null || neighbour.transparent()) {
-                    const vertex_info = block.face(position, face);
+                for(let i = 0; i < 9; i++) {
+                    const x_component = Math.floor(i / 3);
+                    const y_component = i % 3;
+
+                    const dx = x_component - 1;
+                    const dy = y_component - 1;
                     
-                    if(vertex_info !== null) {
-                        push(vertex_info);
+                    let data;
+                    
+                    get_from
+
+                    this.data.get_at(position)
+
+                    if(data === null) {
+                        if
                     }
+
+                    xy_data[i] = data;
                 }
             }
         }
+
+        // for(const position of this.iter_indices()) {
+        //     const block = this.get_at(position);
+
+        //     if(block.invisible()) {
+        //         continue;
+        //     }
+
+        //     for(const face of faces) {
+        //         const neighbour_position = position.clone().add(face_to_direction(face));
+
+        //         let neighbour = this.get_at(neighbour_position);
+        //         if(neighbour === null) {
+        //             const neighbour_chunk = neighbour_chunks[face];
+        //             if(neighbour_chunk !== null) {
+        //                 const position_in_neighbour_chunk = neighbour_position.clone().sub(
+        //                     face_to_direction(face).multiply(chunk_size)
+        //                 );
+        //                 neighbour = neighbour_chunk.get_at(position_in_neighbour_chunk);
+        //             }
+        //         }
+
+        //         if(neighbour === null || neighbour.transparent()) {
+        //             const vertex_info = block.face(position, face);
+                    
+        //             if(vertex_info !== null) {
+        //                 push(vertex_info);
+        //             }
+        //         }
+        //     }
+        // }
 
         return { all_vertices, all_colors, faces_count };
     }
