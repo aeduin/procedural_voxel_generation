@@ -117,9 +117,8 @@ class Chunk {
             return null;
         }
 
-        let height = 0;
         for(let i = 0; i < xy_data.length; i += 2) {
-            height += xy_data[i];
+            const height = xy_data[i];
             if(position.y <= height) {
                 return xy_data[i + 1]
             }
@@ -135,7 +134,7 @@ class Chunk {
         let height = 0;
         for(let i = 0; i < xy_data.length; i += 2) {
             const old_height = height;
-            height += xy_data[i];
+            height = xy_data[i];
             if(position.y <= height) {
                 const block_here = xy_data[i + 1];
 
@@ -150,29 +149,26 @@ class Chunk {
                 }
                 else if(lowest_block_range && xy_data[i - 1].equals(new_block)) {
                     xy_data[i - 2] += 1;
-                    xy_data[i] -= 1;
                     return;
                 }
                 else if(heighest_block_range && xy_data[i + 3].equals(new_block)) {
-                    xy_data[i + 2] += 1;
                     xy_data[i] -= 1;
                 }
                 else {
                     if(lowest_block_range) {
-                        xy_data[i] -= 1;
-                        xy_data.splice(i, 0, 1, new_block);
+                        xy_data.splice(i, 0, position.y, new_block);
                     }
                     else if(heighest_block_range) {
                         xy_data[i] -= i;
-                        xy_data.splice(i + 2, 0, 1, new_block);
+                        xy_data.splice(i + 2, 0, position.y, new_block);
                     }
                     else {
-                        const size_below = position.y - old_height - 1;
-                        const size_above = height - position.y;
+                        const height_below = position.y - 1;
+                        const height_above = height;
 
-                        xy_data[i] = size_below;
-                        xy_data.splice(i + 2, 0, 1, new_block);
-                        xy_data.splice(i + 4, 0, size_above, block_here);
+                        xy_data[i] = height_below;
+                        xy_data.splice(i + 2, 0, position.y, new_block);
+                        xy_data.splice(i + 4, 0, height_above, block_here);
                     }
                 }
 
