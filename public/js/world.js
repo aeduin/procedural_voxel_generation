@@ -132,40 +132,44 @@ class Chunk {
         const xy_data = this.data.get_at(position_2d);
 
         let height = 0;
+        const top_y = position.y + number_of_blocks - 1;
         for(let i = 0; i < xy_data.length; i += 2) {
             const old_height = height;
             height = xy_data[i];
             if(position.y <= height) {
                 const block_here = xy_data[i + 1];
 
-                const lowest_block_range = i - 2 > 0 && old_height === position.y - number_of_blocks;
-                const heighest_block_range = i + 2 < xy_data.length && height + number_of_blocks === position.y;
+                const lowest_block_range = i - 2 > 0 && old_height === position.y - 1;
+                const heighest_block_range = i + 2 < xy_data.length && height - 1 === top_y;
                 // block_here_same -> pass
                 // lowest_block_range && block_below_same -> extend height below
                 // heighest_block_range && block_above_same -> decrease height here
                 // else: split current block range
                 if(block_here.equals(new_block)) {}
                 else if(lowest_block_range && xy_data[i - 1].equals(new_block)) {
-                    xy_data[i - 2] += 1;
+                    xy_data[i - 2] += number_of_blocks;
                 }
                 else if(heighest_block_range && xy_data[i + 3].equals(new_block)) {
-                    xy_data[i] -= 1;
+                    xy_data[i] -= number_of_blocks;
                 }
                 else {
                     if(lowest_block_range) {
-                        xy_data.splice(i, 0, position.y, new_block);
+                        xy_data.splice(i, 0, top_y, new_block);
                     }
                     else if(heighest_block_range) {
-                        xy_data[i] -= i;
-                        xy_data.splice(i + 2, 0, position.y, new_block);
+                        xy_data[i] -= number_of_blocks;
+                        xy_data.splice(i + 2, 0, top_y, new_block);
                     }
                     else {
                         const height_below = position.y - 1;
                         const height_above = height;
 
                         xy_data[i] = height_below;
-                        xy_data.splice(i + 2, 0, position.y, new_block);
-                        xy_data.splice(i + 4, 0, height_above, block_here);
+                        xy_data.splice(i + 2, 0, top_y, new_block);
+
+                        if(top_y < height) {
+                            xy_data.splice(i + 4, 0, height_above, block_here);
+                        }
                     }
                 }
                 return;
@@ -522,10 +526,10 @@ class World {
         return this.chunks.get_at(chunk_position);
     }
 
-    set_at(position, block) {
+    set_at(position, block, n_blocks=1) {
         const pc = this.position_of_chunk(position);
         const c = this.chunks.get_at(pc);
 
-        return c?.set_at(this.position_in_chunk(position), block) ?? false;
+        return c?.set_at(this.position_in_chunk(position), block, n_blocks) ?? false;
     }
 }

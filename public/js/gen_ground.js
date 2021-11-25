@@ -25,13 +25,15 @@ function gen_ground_base(world, height_noise, roughness_noise) {
 
             const dirt_layer = 1 + random(2);
 
-            for(let y = 0; y < height - dirt_layer; y++) {
-                world.set_at(vector(x, y, z), stone);
-            }
+            // for(let y = 0; y < height - dirt_layer; y++) {
+            world.set_at(vector(x, 0, z), stone, Math.floor(height - dirt_layer));
+            // }
 
-            for(let y = Math.max(0, Math.floor(height - dirt_layer)); y < height; y++) {
-                world.set_at(vector(x, y, z), dirt);
-            }
+            const min_y = Math.max(0, Math.floor(height - dirt_layer))
+            const max_y = Math.floor(height);
+            // for(let y = ; y < height; y++) {
+            world.set_at(vector(x, min_y, z), dirt, max_y - min_y + 1);
+            // }
             
             let top_block;
             if(height - 60 > Math.random() * 5) {
