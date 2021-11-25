@@ -1,5 +1,9 @@
+let disable_raycast = false;
+
 function raycast(chunk, smaller_corner, greater_corner, direction, max_length) {
-    // console.log('direction =', direction);
+    if(disable_raycast) {
+        return { hit_block: false, distance_travelled: max_length };
+    }
 
     let distance_travelled = 0;
 
@@ -81,7 +85,7 @@ function raycast(chunk, smaller_corner, greater_corner, direction, max_length) {
         distance_travelled += move_length;
 
         if(distance_travelled > max_length) {
-            return { hit_block: false, distance_travelled: max_length };
+            return { hit_block: false, distance_travelled: max_length, last_direction_idx: null };
             // last_iteration = true;
         }
         // console.log('move_length =', move_length);

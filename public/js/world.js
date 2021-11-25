@@ -127,7 +127,7 @@ class Chunk {
         return air;
     }
 
-    set_at(position, new_block) {
+    set_at(position, new_block, number_of_blocks=1) {
         const position_2d = vector2(position.x, position.z)
         const xy_data = this.data.get_at(position_2d);
 
@@ -138,18 +138,15 @@ class Chunk {
             if(position.y <= height) {
                 const block_here = xy_data[i + 1];
 
-                const lowest_block_range = i - 2 > 0 && old_height === position.y - 1;
-                const heighest_block_range = i + 2 < xy_data.length && height + 1 === position.y;
+                const lowest_block_range = i - 2 > 0 && old_height === position.y - number_of_blocks;
+                const heighest_block_range = i + 2 < xy_data.length && height + number_of_blocks === position.y;
                 // block_here_same -> pass
                 // lowest_block_range && block_below_same -> extend height below
                 // heighest_block_range && block_above_same -> decrease height here
                 // else: split current block range
-                if(block_here.equals(new_block)) {
-                    return;
-                }
+                if(block_here.equals(new_block)) {}
                 else if(lowest_block_range && xy_data[i - 1].equals(new_block)) {
                     xy_data[i - 2] += 1;
-                    return;
                 }
                 else if(heighest_block_range && xy_data[i + 3].equals(new_block)) {
                     xy_data[i] -= 1;
@@ -171,11 +168,10 @@ class Chunk {
                         xy_data.splice(i + 4, 0, height_above, block_here);
                     }
                 }
-
+                return;
             }
         }
-
-        return air;
+        // TODO: if position.y > current_max_height -> fill air between current_max_height and poistion.y and place new block
     }
 
     // set_at(position, new_block) {
@@ -217,9 +213,9 @@ class Chunk {
         }
 
         for(let x = 0; x < Chunk.size.x; x++) {
-            for(let z = 0; z < Chunk.size.y; z++) {
+            for(let y = 0; y < Chunk.size.y; y++) {
                 const here_with_neighbours = [[0, 0, 0], [-1, 0, 1], [1, 0, 2], [0, -1, 3], [0, 1, 4]];
-                xy_data_with_neighbours = Array(5);
+                let xy_data_with_neighbours = Array(5);
 
                 for(const [dx, dy, i] of here_with_neighbours) {
                     const get_at = vector2(x + dx, y + dy);
@@ -227,46 +223,170 @@ class Chunk {
 
                     if(get_at.x < 0){
                         get_from = neighbour_chunks[i + 1]
-                        postion.x += Chunk.size.x;
+                        get_at.x += Chunk.size.x;
                     }
                     else if(get_at.x >= Chunk.size.x){
                         get_from = neighbour_chunks[i + 1]
-                        postion.x -= Chunk.size.x;
+                        get_at.x -= Chunk.size.x;
                     }
                     else if(get_at.y < 0){
                         get_from = neighbour_chunks[i + 1]
-                        postion.y += Chunk.size.x;
+                        get_at.y += Chunk.size.x;
                     }
                     else if(get_at.y >= Chunk.size.y) {
                         get_from = neighbour_chunks[i + 1]
-                        postion.y -= Chunk.size.x;
+                        get_at.y -= Chunk.size.x;
                     }
                     else {
                         get_from = this;
                     }
 
-                    xy_data_with_neighbours[i] = get_from.data.get_at(get_at)
+                    if(get_from) {
+                        xy_data_with_neighbours[i] = get_from.data.get_at(get_at)
+                    }
+                    else{
+                        xy_data_with_neighbours[i] = null;
+                    }
                 }
 
-                for(let i = 0; i < 9; i++) {
-                    const x_component = Math.floor(i / 3);
-                    const y_component = i % 3;
+                let idcs = [0, 0, 0, 0, 0]
+                let old_block = air;
+                let center_idx = 0;
+                let old_height = 0;
+                while(center_idx < xy_data_with_neighbours[0].length) {
+                    // let increment_idx = 0;
+                    // let min_height = xy_data_with_neighbours[0][idcs[0]];
 
-                    const dx = x_component - 1;
-                    const dy = y_component - 1;
-                    
-                    let data;
-                    
-                    get_from
+                    // for(let i = 0; i < 5; i++) {
+                    //     const idx = idcs[i]
+                    //     if(xy_data_with_neighbours[i] !== null && idx < xy_data_with_neighbours[i].length) {
+                    //         const height_here = xy_data_with_neighbours[i][idx];
 
-                    this.data.get_at(position)
+                    //         if(height_here > min_height) { // This is strictly greater than to ensure that idx 0 always gets priority in case of a tie
+                    //             increment_idx = i;
+                    //             min_height = height_here;
+                    //         }
+                    //     }
+                    // }
 
-                    if(data === null) {
-                        if
+                    let next_height;
+                    let next_block;
+                    if(center_idx + 2 < xy_data_with_neighbours[0].length) {
+                        next_height = xy_data_with_neighbours[0][center_idx + 2];
+                        next_block = xy_data_with_neighbours[0][center_idx + 3]
+                    }
+                    else { // Always simulate a block of air on the top of the world
+                        next_height = xy_data_with_neighbours[0][center_idx] + 1;
+                        next_block = air;
                     }
 
-                    xy_data[i] = data;
+                    const old_transparent = old_block.transparent();
+                    const next_transparent = next_block.transparent();
+                    if(old_transparent && !next_transparent) {
+                        const vertex_info = next_block.face(vector(x, old_height + 1, y), facing.down);
+
+                        if(vertex_info !== null) {
+                            push(vertex_info)
+                        }
+                    }
+                    else if(!old_transparent && next_transparent) {
+                        const vertex_info = old_block.face(vector(x, old_height, y), facing.up);
+
+                        if(vertex_info !== null) {
+                            push(vertex_info)
+                        }
+                    }
+
+                    if(!next_transparent) {
+                        for(let i = 1; i < 5; i++) {
+                            const xy_data = xy_data_with_neighbours[i];
+                            if(xy_data !== null) {
+                                let old_side_height = old_height;
+
+                                while(true) {
+                                    const idx = idcs[i];
+
+                                    let side_block;
+                                    let side_height;
+                                    if(idx >= xy_data.length) {
+                                        side_height = next_height;
+                                        side_block = air;
+                                    }
+                                    else {
+                                        side_height = xy_data[idx];
+                                        side_block = xy_data[idx + 1];
+                                    }
+
+                                    if(side_height <= old_height) {
+                                        old_side_height = side_height;
+                                        idcs[i] += 2;
+                                        continue;
+                                    }
+                                    if(!side_block.transparent()) {
+                                        if(side_height >= next_height) {
+                                            break;
+                                        }
+                                        else {
+                                            old_side_height = side_height;
+                                            idcs[i] += 2;
+                                            continue;
+                                        }
+                                    }
+                                    
+                                    for(let vertical_y = Math.max(old_side_height, old_height) + 1; vertical_y <= Math.min(side_height, next_height); vertical_y++) {
+                                        const vertex_info = next_block.face(vector(x, vertical_y, y), i + 1);
+
+                                        if(vertex_info !== null) {
+                                            push(vertex_info);
+                                        }
+                                    }
+
+                                    if(side_height < next_height) {
+                                        old_side_height = side_height;
+                                        idcs[i] += 2;
+                                    }
+                                    else {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    old_block = next_block;
+                    center_idx += 2;
+                    old_height = next_height;
+                    // else {
+                    //     const idx = idcs[increment_idx];
+                    //     const next_idx = idx + 2;
+
+                    //     const from_height = xy_data_with_neighbours[increment_idx][idx];
+                    //     const start_center_block = xy_data_with_neighbours[0][idx + 1];
+                    //     const end_center_block = xy_data_with_neighbours[0][next_idx + 1];
+
+                    //     idcs[increment_idx] += 1;
+                    // }
                 }
+
+                // for(let i = 0; i < 9; i++) {
+                //     const x_component = Math.floor(i / 3);
+                //     const y_component = i % 3;
+
+                //     const dx = x_component - 1;
+                //     const dy = y_component - 1;
+                    
+                //     let data;
+                    
+                //     get_from
+
+                //     this.data.get_at(position)
+
+                //     if(data === null) {
+                //         if
+                //     }
+
+                //     xy_data[i] = data;
+                // }
             }
         }
 
