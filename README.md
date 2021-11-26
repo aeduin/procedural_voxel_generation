@@ -9,6 +9,7 @@ This project is a voxel engine with procedural terrain generation. Some of its f
 - Player does not fall through the terrain, this is accomplished through raycasting
 - Terrain generation with mountains and trees
 - Player can destroy blocks
+- Efficient chunk format allowing worlds of 2048x2048 blocks with only 500MB of JavaScript heap size in Chromium, and fast chunk-mesh generation
 
 ## Build and run
 Prerequisites:
