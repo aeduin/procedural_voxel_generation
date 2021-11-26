@@ -1,5 +1,8 @@
 # Procedural voxel generation
 
+## Screenshots
+![](./screenshots/large-terrain-1.png)
+
 ## Introduction
 This project is a voxel engine with procedural terrain generation. Some of its features include:
 - Rendering with THREE.js

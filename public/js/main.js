@@ -1,4 +1,4 @@
-world_size = vector(8, 1, 8);
+world_size = vector(32, 1, 32);
 world_height = 256
 const chunk_size = vector(Chunk.size.x, world_height, Chunk.size.y);
 const world_blocks_size = world_size.clone().multiply(chunk_size);
