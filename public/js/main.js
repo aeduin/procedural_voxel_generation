@@ -1,10 +1,14 @@
 world_size = vector(8, 1, 8);
 world_height = 256
 const chunk_size = vector(Chunk.size.x, world_height, Chunk.size.y);
-world_blocks_size = world_size.clone().multiply(chunk_size);
+const world_blocks_size = world_size.clone().multiply(chunk_size);
 
+const center_pointer = document.createElement("div"); // HTMLDivElement();
+center_pointer.id = "center_pointer";
+center_pointer.style.left = window.innerWidth / 2 + "px"; 
+center_pointer.style.top = window.innerHeight / 2 + "px"; 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -14,7 +18,9 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x4477FF, 1);
+
 document.body.appendChild(renderer.domElement);
+document.body.appendChild(center_pointer);
 
 let view = {
     horizontal_rotation: 0,
@@ -40,6 +46,9 @@ addEventListener('mousemove', e => {
 window.addEventListener('resize', e => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+
+    center_pointer.style.left = window.innerWidth / 2 + "px"; 
+    center_pointer.style.top = window.innerHeight / 2 + "px"; 
 
     renderer.setSize( window.innerWidth, window.innerHeight );
 });
@@ -168,6 +177,8 @@ let controls = {
     sprint: false,
     jump: false,
     flying: true,
+    click: false,
+    last_block_destroyed: -100000,
 }
 
 // let chunk = new Chunk();
@@ -185,22 +196,37 @@ camera.position.z = world_blocks_size.z / 2;
 let falling_speed = 5;
 let on_ground = false;
 
+let tick = 0;
+
+function generate_mesh_at(chunk_position) {
+    const c = world.get_chunk(chunk_position);
+    if(c.mesh) {
+        scene.remove(c.mesh);
+        c.mesh.material.dispose();
+        c.mesh.geometry.dispose();
+        renderer.renderLists.dispose();
+    }
+
+    const neighbours = faces
+        .map(face_to_direction)
+        .map(direction => direction.add(chunk_position))
+        .map(chunk_position => world.get_chunk(chunk_position));
+    ;
+
+    const chunk_mesh = c.to_mesh(neighbours);
+    const p = chunk_position.clone().multiply(chunk_size);
+    chunk_mesh.position.set(p.x, p.y, p.z);
+    scene.add(chunk_mesh);
+
+}
+
 function animate() {
+    tick += 1;
     const i = iter_chunks.next();
 
     if(!i.done) {
         const chunk_position = i.value;
-        const neighbours = faces
-            .map(face_to_direction)
-            .map(direction => direction.add(chunk_position))
-            .map(chunk_position => world.get_chunk(chunk_position));
-        ;
-
-        const chunk_mesh = world.chunks.get_at(chunk_position).to_mesh(neighbours);
-        const p = chunk_position.clone().multiply(chunk_size);
-        chunk_mesh.position.set(p.x, p.y, p.z);
-
-        scene.add(chunk_mesh);
+        generate_mesh_at(chunk_position);
     }
 
     let move_speed = 0.2;
@@ -252,6 +278,61 @@ function animate() {
         movement.y -= falling_speed;
     }
     on_ground = false;
+
+    const rotation_matrix = 
+        new THREE.Matrix4().makeRotationY(view.horizontal_rotation).multiply(
+            new THREE.Matrix4().makeRotationX(view.vertical_rotation)
+        );
+
+    if(controls.click && tick - controls.last_block_destroyed > 20) {
+        const looking_direction = vector(0, 0, -1).applyMatrix4(rotation_matrix);
+        const raycast_result = raycast(
+                world,
+                camera.position.clone().sub(vector(0.02, 0.02, 0.02)),
+                camera.position.clone().add(vector(0.02, 0.02, 0.02)),
+                looking_direction,
+                5,
+        )
+
+        if(raycast_result.hit_block) {
+            console.log(raycast_result.hit_at);;
+            // TODO: remove debug console.log
+            console.log(
+                world.set_at(raycast_result.hit_at, air)
+            );
+            const position_of_chunk = world.position_of_chunk(raycast_result.hit_at);
+            const position_in_chunk = world.position_in_chunk(raycast_result.hit_at);
+            const c = world.get_chunk(position_of_chunk);
+
+            generate_mesh_at(position_of_chunk);
+
+            if(position_in_chunk.x === 0 && position_of_chunk.x !== 0) {
+                const neighbour_location = position_of_chunk.clone();
+                neighbour_location.x -= 1;
+                generate_mesh_at(neighbour_location);
+            }
+            if(position_in_chunk.x === Chunk.size.x - 1 && position_of_chunk.x !== world_size.x - 1) {
+                const neighbour_location = position_of_chunk.clone();
+                neighbour_location.x += 1;
+                generate_mesh_at(neighbour_location);
+            }
+            if(position_in_chunk.z === 0 && position_of_chunk.z !== 0) {
+                const neighbour_location = position_of_chunk.clone();
+                neighbour_location.z -= 1;
+                generate_mesh_at(neighbour_location);
+            }
+            if(position_in_chunk.z === Chunk.size.y - 1 && position_of_chunk.z !== world_size.z - 1) {
+                const neighbour_location = position_of_chunk.clone();
+                neighbour_location.z += 1;
+                generate_mesh_at(neighbour_location);
+            }
+
+            controls.last_block_destroyed = tick;
+        }
+        else{
+            console.log('raycast hit no block');
+        }
+    }
     
     while(true) {
         const movement_length = movement.length();
@@ -312,9 +393,7 @@ function animate() {
     }
 
     camera.rotation.setFromRotationMatrix(
-        new THREE.Matrix4().makeRotationY(view.horizontal_rotation).multiply(
-            new THREE.Matrix4().makeRotationX(view.vertical_rotation)
-        )
+        rotation_matrix
     );
 
     // camera.rotation.x = view.vertical_rotation;
@@ -392,3 +471,10 @@ addEventListener('keyup', e => {
         controls.down = false;
     }
 })
+
+addEventListener('mousedown', e => {
+    controls.click = true;
+});
+addEventListener('mouseup', e => {
+    controls.click = false;
+});

@@ -2,7 +2,7 @@ function gen_ground(world) {
     gen_ground_base(
         world,
         new MaasNoise(world.blocks_size.x / 8, world.blocks_size.z / 8),
-        new MaasNoise(world.blocks_size.x / 128, world.blocks_size.z / 128)
+        new MaasNoise(world.blocks_size.x / 256, world.blocks_size.z / 256)
     );
 }
 
@@ -13,7 +13,7 @@ function gen_ground_2(world) {
 function gen_ground_base(world, height_noise, roughness_noise) {
     for(let x = 0; x < world.blocks_size.x; x++) {
         for(let z = 0; z < world.blocks_size.z; z++) {
-            const roughness_sample = Math.abs(roughness_noise.value_at(x / 128, z / 128));
+            const roughness_sample = Math.abs(roughness_noise.value_at(x / 256, z / 256));
             const height_sample = Math.abs(height_noise.value_at(x / 8, z / 8));
 
             const roughness = (roughness_sample ** 2 * 20) + 0.5;

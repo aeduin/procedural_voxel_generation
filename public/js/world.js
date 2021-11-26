@@ -97,8 +97,33 @@ class Snow extends Block {
 }
 const snow = new Snow();
 
+const range_error = {
+    none: {toString: () => "none"},
+    double_value: {toString: () => "double_value"},
+    non_increasing_height: {toString: () => "non_increasing_height"},
+}
+
+function verify_range(range) {
+    let last_height = range[0];
+    let last_value = range[1];
+    for(let i = 2; i < range.length; i += 2) {
+        const height = range[i];
+        const value = range[i + 1];
+        if(height <= last_height) {
+            return range_error.non_increasing_height;
+        }
+        else if(last_value.equals(value)){
+            return range_error.double_value;
+        }
+        last_height = height;
+        last_value = value;
+    }
+
+    return range_error.none;
+}
+
 class Chunk {
-    static size = vector(64, 64);
+    static size = vector2(64, 64);
     static blocks_count = Chunk.size.x * Chunk.size.y;
 
     constructor() {
@@ -107,6 +132,8 @@ class Chunk {
         for(let tile = 0; tile < Chunk.blocks_count; tile++) {
             this.data.data[tile] = [255, air];
         }
+
+        this.mesh = null;
     }
 
     get_at(position) {
@@ -140,20 +167,37 @@ class Chunk {
                 const block_here = xy_data[i + 1];
 
                 const lowest_block_range = i - 2 > 0 && old_height === position.y - 1;
-                const heighest_block_range = i + 2 < xy_data.length && height - 1 === top_y;
+                const heighest_block_range = i + 2 < xy_data.length && height === top_y;
                 // block_here_same -> pass
                 // lowest_block_range && block_below_same -> extend height below
                 // heighest_block_range && block_above_same -> decrease height here
                 // else: split current block range
                 if(block_here.equals(new_block)) {}
+                // TODO:
+                // else if(lowest_block_range && heighest_block_range && xy_data[i - 1].equals(new_block) && xy_data[i + 3].equals(new_block)) {
+                // }
                 else if(lowest_block_range && xy_data[i - 1].equals(new_block)) {
                     xy_data[i - 2] += number_of_blocks;
+                    if(heighest_block_range) {
+                        // The old range is now empty, remove it
+                        xy_data.splice(i, 2);
+                    }
                 }
                 else if(heighest_block_range && xy_data[i + 3].equals(new_block)) {
                     xy_data[i] -= number_of_blocks;
+                    if(lowest_block_range) {
+                        // The old range is now empty, remove it
+                        xy_data.splice(i, 2);
+                    }
+                    else {
+                    }
                 }
                 else {
-                    if(lowest_block_range) {
+                    if(lowest_block_range && heighest_block_range) {
+                        console.log("lowest and highest block")
+                        xy_data[i + 1] = new_block;
+                    }
+                    else if(lowest_block_range) {
                         xy_data.splice(i, 0, top_y, new_block);
                     }
                     else if(heighest_block_range) {
@@ -171,6 +215,10 @@ class Chunk {
                             xy_data.splice(i + 4, 0, height_above, block_here);
                         }
                     }
+                }
+                const opt_range_error = verify_range(xy_data);
+                if(opt_range_error === range_error.non_increasing_height) {
+                    throw new Error(opt_range_error.toString())
                 }
                 return;
             }
@@ -207,7 +255,6 @@ class Chunk {
             for(const {x, y, z} of vertices) {
                 all_vertices.push(x, y, z);
             }
-            // all_vertices.push(...vertices)
 
             for(let i = 0; i < 4; i++) {
                 all_colors.push(color.r, color.g, color.b);
@@ -258,21 +305,6 @@ class Chunk {
                 let center_idx = 0;
                 let old_height = 0;
                 while(center_idx < xy_data_with_neighbours[0].length) {
-                    // let increment_idx = 0;
-                    // let min_height = xy_data_with_neighbours[0][idcs[0]];
-
-                    // for(let i = 0; i < 5; i++) {
-                    //     const idx = idcs[i]
-                    //     if(xy_data_with_neighbours[i] !== null && idx < xy_data_with_neighbours[i].length) {
-                    //         const height_here = xy_data_with_neighbours[i][idx];
-
-                    //         if(height_here > min_height) { // This is strictly greater than to ensure that idx 0 always gets priority in case of a tie
-                    //             increment_idx = i;
-                    //             min_height = height_here;
-                    //         }
-                    //     }
-                    // }
-
                     let next_height;
                     let next_block;
                     if(center_idx + 2 < xy_data_with_neighbours[0].length) {
@@ -360,70 +392,9 @@ class Chunk {
                     old_block = next_block;
                     center_idx += 2;
                     old_height = next_height;
-                    // else {
-                    //     const idx = idcs[increment_idx];
-                    //     const next_idx = idx + 2;
-
-                    //     const from_height = xy_data_with_neighbours[increment_idx][idx];
-                    //     const start_center_block = xy_data_with_neighbours[0][idx + 1];
-                    //     const end_center_block = xy_data_with_neighbours[0][next_idx + 1];
-
-                    //     idcs[increment_idx] += 1;
-                    // }
                 }
-
-                // for(let i = 0; i < 9; i++) {
-                //     const x_component = Math.floor(i / 3);
-                //     const y_component = i % 3;
-
-                //     const dx = x_component - 1;
-                //     const dy = y_component - 1;
-                    
-                //     let data;
-                    
-                //     get_from
-
-                //     this.data.get_at(position)
-
-                //     if(data === null) {
-                //         if
-                //     }
-
-                //     xy_data[i] = data;
-                // }
             }
         }
-
-        // for(const position of this.iter_indices()) {
-        //     const block = this.get_at(position);
-
-        //     if(block.invisible()) {
-        //         continue;
-        //     }
-
-        //     for(const face of faces) {
-        //         const neighbour_position = position.clone().add(face_to_direction(face));
-
-        //         let neighbour = this.get_at(neighbour_position);
-        //         if(neighbour === null) {
-        //             const neighbour_chunk = neighbour_chunks[face];
-        //             if(neighbour_chunk !== null) {
-        //                 const position_in_neighbour_chunk = neighbour_position.clone().sub(
-        //                     face_to_direction(face).multiply(chunk_size)
-        //                 );
-        //                 neighbour = neighbour_chunk.get_at(position_in_neighbour_chunk);
-        //             }
-        //         }
-
-        //         if(neighbour === null || neighbour.transparent()) {
-        //             const vertex_info = block.face(position, face);
-                    
-        //             if(vertex_info !== null) {
-        //                 push(vertex_info);
-        //             }
-        //         }
-        //     }
-        // }
 
         return { all_vertices, all_colors, faces_count };
     }
@@ -473,6 +444,7 @@ class Chunk {
         result.castShadow = true;
         result.receiveShadow = true;
 
+        this.mesh = result;
         return result;
     }
 }
@@ -518,6 +490,14 @@ class World {
         return p;
     }
 
+    get_array_at(position) {
+        const pc = this.position_of_chunk(position);
+        const pic = this.position_in_chunk(position);
+        const c = this.chunks.get_at(pc);
+
+        return c?.data?.get_at(vector2(pic.x, pic.z));
+    }
+
     get_at(position) {
         return this.chunks.get_at(this.position_of_chunk(position))?.get_at(this.position_in_chunk(position)) ?? null;
     }
@@ -530,6 +510,10 @@ class World {
         const pc = this.position_of_chunk(position);
         const c = this.chunks.get_at(pc);
 
-        return c?.set_at(this.position_in_chunk(position), block, n_blocks) ?? false;
+        if(c !== null) {
+            const position_in_chunk = this.position_in_chunk(position);
+            c.set_at(position_in_chunk, block, n_blocks);
+            return c.data.get_at(vector2(position_in_chunk.x, position_in_chunk.z));
+        }
     }
 }
