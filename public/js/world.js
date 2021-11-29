@@ -156,72 +156,159 @@ class Chunk {
 
     set_at(position, new_block, number_of_blocks=1) {
         const position_2d = vector2(position.x, position.z)
-        const xy_data = this.data.get_at(position_2d);
+        const block_ranges = this.data.get_at(position_2d);
 
-        let height = 0;
         const top_y = position.y + number_of_blocks - 1;
-        for(let i = 0; i < xy_data.length; i += 2) {
-            const old_height = height;
-            height = xy_data[i];
-            if(position.y <= height) {
-                const block_here = xy_data[i + 1];
 
-                const lowest_block_range = i - 2 > 0 && old_height === position.y - 1;
-                const heighest_block_range = i + 2 < xy_data.length && height === top_y;
-                // block_here_same -> pass
-                // lowest_block_range && block_below_same -> extend height below
-                // heighest_block_range && block_above_same -> decrease height here
-                // else: split current block range
-                if(block_here.equals(new_block)) {}
-                // TODO:
-                // else if(lowest_block_range && heighest_block_range && xy_data[i - 1].equals(new_block) && xy_data[i + 3].equals(new_block)) {
-                // }
-                else if(lowest_block_range && xy_data[i - 1].equals(new_block)) {
-                    xy_data[i - 2] += number_of_blocks;
-                    if(heighest_block_range) {
-                        // The old range is now empty, remove it
-                        xy_data.splice(i, 2);
-                    }
-                }
-                else if(heighest_block_range && xy_data[i + 3].equals(new_block)) {
-                    xy_data[i] -= number_of_blocks;
-                    if(lowest_block_range) {
-                        // The old range is now empty, remove it
-                        xy_data.splice(i, 2);
-                    }
-                    else {
-                    }
-                }
-                else {
-                    if(lowest_block_range && heighest_block_range) {
-                        console.log("lowest and highest block")
-                        xy_data[i + 1] = new_block;
-                    }
-                    else if(lowest_block_range) {
-                        xy_data.splice(i, 0, top_y, new_block);
-                    }
-                    else if(heighest_block_range) {
-                        xy_data[i] -= number_of_blocks;
-                        xy_data.splice(i + 2, 0, top_y, new_block);
-                    }
-                    else {
-                        const height_below = position.y - 1;
-                        const height_above = height;
-
-                        xy_data[i] = height_below;
-                        xy_data.splice(i + 2, 0, top_y, new_block);
-
-                        if(top_y < height) {
-                            xy_data.splice(i + 4, 0, height_above, block_here);
-                        }
-                    }
-                }
-                const opt_range_error = verify_range(xy_data);
-                if(opt_range_error === range_error.non_increasing_height) {
-                    throw new Error(opt_range_error.toString())
-                }
-                return;
+        // Find the ranges that currently contain the start and end of the new range
+        let lowest_range_idx = -1;
+        for(let i = 0; i < block_ranges.length; i += 2) {
+            if(position.y <= block_ranges[i]) {
+                lowest_range_idx = i;
             }
+        }
+
+        if(debug && lowest_range_idx === -1) {
+            throw Error("Setting block range that starts above world height is impossible");
+        }
+
+        let highest_range_idx = -1;
+        for(let i = lowest_range_idx; i < block_ranges.length; i += 2) {
+            if(top_y <= block_ranges[i]) {
+                highest_range_idx = i;
+            }
+        }
+
+        if(debug && highest_range_idx === -1) {
+            throw Error("Setting block range that ends above world height is impossible");
+        }
+
+
+        // Possible (edge) cases:
+        // The range below contains the same block
+        // The range above contains the same block
+        // The range at lowest_range_idx contains the same block
+        // The range at highest_range_idx contains the same block
+        // lowest_range_idx is the same as highest_range_idx
+        // If there are ranges between the lowest and highest range, these should be removed entirely
+        // Some combination of the above
+        
+        const lowest_range_same = block_ranges[lowest_range_idx + 1].equals(new_block)
+        const highest_range_same = block_ranges[highest_range_idx + 1].equals(new_block)
+        const below_range_same = (
+            lowest_range_idx - 2 > 0
+            &&
+            block_ranges[lowest_range_idx - 2] === position.y - 1
+            &&
+            block_ranges[lowest_range_idx - 1].equals(new_block)
+        );
+        const above_range_same = (
+            highest_range_idx + 3 < block_ranges.length
+            &&
+            block_ranges[highest_range_idx + 2] == top_y + 1
+            &&
+            block_ranges[highest_range_idx + 3].equals(new_block)
+        );
+
+        if(debug & lowest_range_same && below_range_same) {
+            throw Error("Lowest range and the range below it both contain the new block")
+        }
+        if(debug & highest_range_same && above_range_same) {
+            throw Error("Highest range and the range above it both contain the new block")
+        }
+
+        let extend_from = null
+        if(lowest_range_same) {
+            extend_from = lowest_range_idx;
+        }
+        else if(below_range_same) {
+            extend_from = lowest_range_idx - 2;
+        }
+
+        let extend_to = null
+        if(highest_range_same) {
+            extend_to = highest_range_idx;
+        }
+        else if(above_range_same) {
+            extend_to = highest_range_idx + 2;
+        }
+
+        let remove_ranges_to_idx;
+        let remove_ranges_from_idx;
+        if(extend_from !== null && extend_to !== null) {
+            remove_ranges_from_idx = extend_from;
+            remove_ranges_to_idx = extend_from - 2;
+        }
+        else if() {
+        }
+
+        // const xy_data = this.data.get_at(position_2d);
+        // let height = 0;
+        // for(let i = 0; i < xy_data.length; i += 2) {
+        //     const old_height = height;
+        //     height = xy_data[i];
+        //     if(position.y <= height) {
+        //         const block_here = xy_data[i + 1];
+
+        //         const lowest_block_range = i - 2 > 0 && old_height === position.y - 1;
+        //         const heighest_block_range = i + 2 < xy_data.length && height === top_y;
+        //         // block_here_same -> pass
+        //         // lowest_block_range && block_below_same -> extend height below
+        //         // heighest_block_range && block_above_same -> decrease height here
+        //         // else: split current block range
+        //         if(block_here.equals(new_block)) {}
+        //         // TODO:
+        //         // else if(lowest_block_range && heighest_block_range && xy_data[i - 1].equals(new_block) && xy_data[i + 3].equals(new_block)) {
+        //         // }
+        //         else if(lowest_block_range && xy_data[i - 1].equals(new_block)) {
+        //             xy_data[i - 2] += number_of_blocks;
+        //             if(heighest_block_range) {
+        //                 // The old range is now empty, remove it
+        //                 xy_data.splice(i, 2);
+        //             }
+        //         }
+        //         else if(heighest_block_range && xy_data[i + 3].equals(new_block)) {
+        //             xy_data[i] -= number_of_blocks;
+        //             if(lowest_block_range) {
+        //                 // The old range is now empty, remove it
+        //                 xy_data.splice(i, 2);
+        //             }
+        //             else {
+        //             }
+        //         }
+        //         else {
+        //             if(lowest_block_range && heighest_block_range) {
+        //                 console.log("lowest and highest block")
+        //                 xy_data[i + 1] = new_block;
+        //             }
+        //             else if(lowest_block_range) {
+        //                 xy_data.splice(i, 0, top_y, new_block);
+        //             }
+        //             else if(heighest_block_range) {
+        //                 xy_data[i] -= number_of_blocks;
+        //                 xy_data.splice(i + 2, 0, top_y, new_block);
+        //             }
+        //             else {
+        //                 const height_below = position.y - 1;
+        //                 const height_above = height;
+
+        //                 xy_data[i] = height_below;
+        //                 xy_data.splice(i + 2, 0, top_y, new_block);
+
+        //                 if(top_y < height) {
+        //                     xy_data.splice(i + 4, 0, height_above, block_here);
+        //                 }
+        //             }
+        //         }
+        //         const opt_range_error = verify_range(xy_data);
+        //         if(opt_range_error !== range_error.none) {
+        //             throw new Error(opt_range_error.toString())
+        //         }
+        //         return;
+        //     }
+        // }
+        if(debug && opt_range_error !== range_error.none) {
+            throw new Error(opt_range_error.toString())
         }
         // TODO: if position.y > current_max_height -> fill air between current_max_height and poistion.y and place new block
     }

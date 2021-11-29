@@ -1,5 +1,5 @@
-world_size = vector(8, 1, 8);
-world_height = 256
+world_size = vector(16, 1, 16);
+world_height = 1024
 const chunk_size = vector(Chunk.size.x, world_height, Chunk.size.y);
 const world_blocks_size = world_size.clone().multiply(chunk_size);
 
@@ -56,6 +56,8 @@ window.addEventListener('resize', e => {
 const sun = new THREE.PointLight(0xffffaa, 1.5, 10000);
 sun.position.set(world_blocks_size.x / 2, 400, world_blocks_size.z / 2);
 sun.castShadow = true;
+sun.shadow.mapSize.width = 2048;
+sun.shadow.mapSize.height = 2048;
 scene.add(sun);
 
 const ambient_light = new THREE.AmbientLight(0x333333);
