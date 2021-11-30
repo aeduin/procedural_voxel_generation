@@ -196,13 +196,6 @@ function insert_range(ranges, bottom_y, top_y, value) {
         ranges[highest_range_idx + 3].equals(value)
     );
 
-    // if(debug & lowest_range_same && below_range_same) {
-    //     throw Error("Lowest range and the range below it both contain the new block")
-    // }
-    // if(debug & highest_range_same && above_range_same) {
-    //     throw Error("Highest range and the range above it both contain the new block")
-    // }
-
     let extend_from = null
     if(lowest_range_same) {
         extend_from = lowest_range_idx;
@@ -249,22 +242,10 @@ function insert_range(ranges, bottom_y, top_y, value) {
         }
 
         verify_range_and_throw(ranges)
-        // remove_ranges_from_idx = extend_from + 2;
-        // remove_ranges_to_idx = highest_range_idx - 2;
-        // increase_height_idx = extend_from;
     }
     else if(extend_to !== null /* implicit: && extend_from === null */ ) {
         // Ranges between lowest_range and highest_range should be removed
         // The height of lowest_range should decrease to new_height_below. If this means its height would be equal to the height of the range below it, remove lowest_range as well
-
-        // const new_height_below = bottom_y - 1;
-        // if(lowest_range_idx - 2 > 0 && ranges[lowest_range_idx - 2] === new_height_below) {
-        //     remove_ranges(ranges, lowest_range_idx, extend_to - 2)
-        // }
-        // else {
-        //     set_range_height(ranges, lowest_range_idx, new_height_below);
-        //     remove_ranges(ranges, lowest_range_idx + 2, extend_to - 2);
-        // }
 
         const new_height_below = bottom_y - 1;
 
@@ -285,14 +266,8 @@ function insert_range(ranges, bottom_y, top_y, value) {
             set_range_height(ranges, lowest_range_idx, new_height_below);
         }
         remove_ranges(ranges, remove_start_idx, extend_to - 2);
-        // set_range_height(ranges, remove_start_idx, top_y);
-        // set_range_value(ranges, remove_start_idx, value);
 
         verify_range_and_throw(ranges)
-        // set_range_height(ranges, lowest_range_idx, bottom_y - 1);
-        // remove_ranges_from_idx = lowest_range_idx + 2;
-        // remove_ranges_to_idx = extend_to - 2;
-        // increase_height_idx = null;
     }
     else /* implicit: extend_from === null && extend_to === null */ {
         const new_height_below = bottom_y - 1;
@@ -338,10 +313,6 @@ function insert_range(ranges, bottom_y, top_y, value) {
         }
 
         verify_range_and_throw(ranges)
-
-        // remove_ranges_from_idx = lowest_range_idx + 2;
-        // remove_ranges_to_idx = highest_range_idx - 2;
-        // increase_height_idx = null;
     }
 
     verify_range_and_throw(ranges)
@@ -407,10 +378,6 @@ class Chunk {
 
         insert_range(block_ranges, position.y, top_y, new_block);
     }
-
-    // set_at(position, new_block) {
-    //     return this.data.set_at(position, new_block)
-    // }
 
     *iter_indices() {
         let result = vector(0, 0, 0);
