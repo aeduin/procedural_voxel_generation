@@ -1,4 +1,4 @@
-const debug = true;
+const debug = false;
 const vector2 = (x, y) => new THREE.Vector2(x, y);
 
 class Array2D {

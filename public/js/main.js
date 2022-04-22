@@ -5,8 +5,8 @@ const world_blocks_size = world_size.clone().multiply(chunk_size);
 
 const center_pointer = document.createElement("div"); // HTMLDivElement();
 center_pointer.id = "center_pointer";
-center_pointer.style.left = window.innerWidth / 2 + "px"; 
-center_pointer.style.top = window.innerHeight / 2 + "px"; 
+center_pointer.style.left = window.innerWidth / 2 + "px";
+center_pointer.style.top = window.innerHeight / 2 + "px";
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
 
@@ -47,8 +47,8 @@ window.addEventListener('resize', e => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
-    center_pointer.style.left = window.innerWidth / 2 + "px"; 
-    center_pointer.style.top = window.innerHeight / 2 + "px"; 
+    center_pointer.style.left = window.innerWidth / 2 + "px";
+    center_pointer.style.top = window.innerHeight / 2 + "px";
 
     renderer.setSize( window.innerWidth, window.innerHeight );
 });
@@ -281,7 +281,7 @@ function animate() {
     }
     on_ground = false;
 
-    const rotation_matrix = 
+    const rotation_matrix =
         new THREE.Matrix4().makeRotationY(view.horizontal_rotation).multiply(
             new THREE.Matrix4().makeRotationX(view.vertical_rotation)
         );
@@ -335,7 +335,7 @@ function animate() {
             console.log('raycast hit no block');
         }
     }
-    
+
     while(true) {
         const movement_length = movement.length();
 
@@ -351,7 +351,7 @@ function animate() {
             );
 
             const move_amount = movement_direction.clone().multiplyScalar(distance_travelled);
-            
+
             sign = n => n < 0 ? -1 : (n === 0 ? 0 : 1);
             epsilon = 0.001
 
@@ -405,7 +405,7 @@ function animate() {
     //
 
     // console.log(camera.rotation);
-    
+
     requestAnimationFrame( animate );
     renderer.render( scene, camera );
 }

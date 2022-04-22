@@ -18,7 +18,7 @@ class Block {
 
     face(position, facing) {
         const vertices = face_to_side_coordinates(facing).map(cor => cor.add(position));
-        
+
         return { vertices, color: this.color() }
     }
 
@@ -101,10 +101,33 @@ const range_error = {
     none: {toString: () => "none"},
     double_value: {toString: () => "double_value"},
     non_increasing_height: {toString: () => "non_increasing_height"},
-    height_nan: {toString: () => "height_nan"}
+    height_nan: {toString: () => "height_nan"},
+    invalid_result: {toString: () => "invalid_result"},
 }
 
-function verify_ranges(ranges) {
+function verify_range_and_throw(ranges, ranges_input_copy, bottom_y, top_y, value) {
+    if(!debug) return;
+    const opt_range_error = verify_ranges(ranges, ranges_input_copy, bottom_y, top_y, value);
+
+    if(debug && opt_range_error !== range_error.none && opt_range_error !== range_error.double_value) {
+        throw new Error(opt_range_error.toString())
+    }
+}
+
+function verify_ranges(ranges, ranges_input_copy, bottom_y, top_y, value) {
+    const error = ranges_have_correct_successors(ranges)
+    if(error != range_error.none) {
+        return error
+    }
+
+    if(!insert_range_post_condition(ranges_input_copy, ranges, bottom_y, top_y, value)) {
+        return range_error.invalid_result;
+    }
+
+    return range_error.none;
+}
+
+function ranges_have_correct_successors(ranges) {
     let last_height = ranges[0];
     let last_value = ranges[1];
 
@@ -128,18 +151,53 @@ function verify_ranges(ranges) {
         last_value = value;
     }
 
-    return range_error.none;
+    return range_error.none
 }
 
-function verify_range_and_throw(ranges) {
-    const opt_range_error = verify_ranges(ranges);
-
-    if(debug && opt_range_error !== range_error.none && opt_range_error !== range_error.double_value) {
-        throw new Error(opt_range_error.toString())
+function insert_range_post_condition(ranges_input_copy, ranges_result, bottom_y, top_y, value) {
+    let i = 0;
+    // Everything below bottom_y should be the same value as in the input
+    for(; i < ranges_result.length && ranges_result[i] < bottom_y; i += 2) {
+        if(!ranges_result[i + 1].equals(ranges_input_copy[i + 1])) {
+            return false;
+        }
     }
+    let j = i - 2;
+    // Everything between bottom_y and top_y should be the new value
+    for(; i < ranges_result.length && ranges_result[i] <= top_y; i += 2) {
+        if(!ranges_result[i + 1].equals(value)) {
+            return false;
+        }
+    }
+
+    // input_idx_offset = x - y
+    // where x is the lowest value such that ranges_input_copy[x] >= top_y
+    // and y is the lowest value such that ranges_result[y] >= top_y
+    let input_idx_offset = 0;
+
+    for(; j < ranges_input_copy.length; j += 2) {
+        if(ranges_input_copy[j] > top_y) {
+            input_idx_offset = j - i;
+            break;
+        }
+    }
+
+    for(; i < ranges_result.length; i += 2) {
+        if(!ranges_result[i + 1].equals(ranges_input_copy[i + input_idx_offset + 1])) {
+            return false;
+        }
+    }
+
+    // TODO: we have now verified that ranges_result is "sound", but not that it is complete. i.e. we did not check that every value from ranges_input_copy that should be copied is indeed copied.
+
+    return true;
 }
 
 function insert_range(ranges, bottom_y, top_y, value) {
+    let ranges_copy = null;
+    if(debug) {
+        ranges_copy = ranges.slice();
+    }
     if(value.equals(wood) || value.equals(leaf)) {
         // console.log(ranges)
     }
@@ -178,7 +236,7 @@ function insert_range(ranges, bottom_y, top_y, value) {
     // lowest_range_idx is the same as highest_range_idx
     // If there are ranges between the lowest and highest range, these should be removed entirely
     // Some combination of the above
-    
+
     const lowest_range_same = ranges[lowest_range_idx + 1].equals(value)
     const highest_range_same = ranges[highest_range_idx + 1].equals(value)
     const below_range_same = (
@@ -222,7 +280,7 @@ function insert_range(ranges, bottom_y, top_y, value) {
         }
         /* implicit: else, the block is placed inside a range that alrady contains the same block */
 
-        verify_range_and_throw(ranges)
+        verify_range_and_throw(ranges, ranges_copy, bottom_y, top_y, value);
 
         // remove_ranges_from_idx = extend_from;
         // remove_ranges_to_idx = extend_to - 2;
@@ -241,7 +299,7 @@ function insert_range(ranges, bottom_y, top_y, value) {
             remove_ranges(ranges, extend_from + 2, highest_range_idx - 2);
         }
 
-        verify_range_and_throw(ranges)
+        verify_range_and_throw(ranges, ranges_copy, bottom_y, top_y, value);
     }
     else if(extend_to !== null /* implicit: && extend_from === null */ ) {
         // Ranges between lowest_range and highest_range should be removed
@@ -262,12 +320,12 @@ function insert_range(ranges, bottom_y, top_y, value) {
             // set_range_height(ranges, lowest_range_idx, new_height_below);
         }
 
-        if(decrease_height_below) { 
+        if(decrease_height_below) {
             set_range_height(ranges, lowest_range_idx, new_height_below);
         }
         remove_ranges(ranges, remove_start_idx, extend_to - 2);
 
-        verify_range_and_throw(ranges)
+        verify_range_and_throw(ranges, ranges_copy, bottom_y, top_y, value);
     }
     else /* implicit: extend_from === null && extend_to === null */ {
         const new_height_below = bottom_y - 1;
@@ -304,7 +362,7 @@ function insert_range(ranges, bottom_y, top_y, value) {
             ranges.splice(remove_start_idx - 2, 0, new_height_below, ranges[lowest_range_idx + 1], top_y, value)
         }
         else {
-            if(decrease_height_below) { 
+            if(decrease_height_below) {
                 set_range_height(ranges, lowest_range_idx, new_height_below);
             }
             remove_ranges(ranges, remove_start_idx, remove_end_idx, true);
@@ -312,10 +370,10 @@ function insert_range(ranges, bottom_y, top_y, value) {
             set_range_value(ranges, remove_start_idx, value);
         }
 
-        verify_range_and_throw(ranges)
+        verify_range_and_throw(ranges, ranges_copy, bottom_y, top_y, value);
     }
 
-    verify_range_and_throw(ranges)
+    verify_range_and_throw(ranges, ranges_copy, bottom_y, top_y, value);
 }
 
 function remove_ranges(ranges, from_idx, to_idx, keep_one=false) {
@@ -517,7 +575,7 @@ class Chunk {
                                             continue;
                                         }
                                     }
-                                    
+
                                     for(let vertical_y = Math.max(old_side_height, old_height) + 1; vertical_y <= Math.min(side_height, next_height); vertical_y++) {
                                         const vertex_info = next_block.face(vector(x, vertical_y, y), i + 1);
 
@@ -557,7 +615,7 @@ class Chunk {
             emissive: new THREE.Color(0x0c0c0c),
             shininess: 50,
         });
-        
+
         const pos = new THREE.Float32BufferAttribute(
             all_vertices,
             3
@@ -570,7 +628,7 @@ class Chunk {
 
         geometry.setAttribute('position', pos);
         geometry.setAttribute('color', col);
-        
+
         const indices = new Uint32Array(faces_count * 6);
 
         for(let face_index = 0; face_index < faces_count; face_index++) {
